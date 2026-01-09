@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-light-bg text-slate-900;
+  }
+}
+
+@layer utilities {
+  .pattern-grid-lg {
+    background-image: radial-gradient(#7F5AF0 2px, transparent 2px); /* Changed to dots for cleaner look */
+    background-size: 30px 30px;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #FFFFFE;
+  border-left: 3px solid #16161a;
+}
+::-webkit-scrollbar-thumb {
+  background: #16161a;
+  border: 3px solid #FFFFFE; 
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7F5AF0;
+}
