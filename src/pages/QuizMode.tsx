@@ -41,7 +41,7 @@ export const QuizMode = () => {
   const playTargetNote = (note: number = targetNote!) => {
     if (!note) return;
     const freq = getFrequency(note);
-    playNote(freq, 1.2, 'sine'); // Using 'sine' for cleaner, more pitch-accurate sound
+    playNote(freq, 1.2, 'sine');
   };
 
   const handleNoteClick = (midi: number) => {
@@ -70,25 +70,25 @@ export const QuizMode = () => {
   };
 
   return (
-    <div className="min-h-screen bg-light-bg text-dark p-6 flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-light-bg text-dark p-3 md:p-6 flex flex-col font-sans overflow-x-hidden">
       {/* Header */}
-      <header className="flex justify-between items-center mb-8 max-w-6xl mx-auto w-full">
+      <header className="flex justify-between items-center mb-4 md:mb-8 max-w-6xl mx-auto w-full gap-2">
         <Link to="/">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            返回
+          <Button variant="ghost" size="sm" className="shrink-0">
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">返回</span>
           </Button>
         </Link>
-        <div className="flex gap-4">
-          <Card className="!p-3 !py-2 flex items-center gap-2 bg-white">
-            <Trophy className="w-5 h-5 text-accent" />
-            <span className="font-bold">得分: {score}</span>
+        <div className="flex gap-2 md:gap-4">
+          <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
+            <Trophy className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+            <span className="font-bold text-sm md:text-base">{score}</span>
           </Card>
-          <Card className="!p-3 !py-2 flex items-center gap-2 bg-white">
-            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
+          <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
+            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
               {streak}
             </div>
-            <span className="font-bold">连击</span>
+            <span className="font-bold text-sm md:text-base hidden sm:inline">连击</span>
           </Card>
         </div>
       </header>
@@ -97,30 +97,30 @@ export const QuizMode = () => {
         {/* Center Content: Play Button & Feedback */}
         <div className="flex-1 flex flex-col items-center justify-center w-full min-h-0">
             {/* Play Button / Start Area */}
-            <div className="shrink-0 mb-8 relative z-10">
+            <div className="shrink-0 mb-4 md:mb-8 relative z-10">
                 <MotionDiv 
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="relative"
                 >
                   {status === 'idle' ? (
-                     <div className="text-center">
-                       <h2 className="text-4xl font-black mb-6">准备好训练你的耳朵了吗？</h2>
-                       <Button size="lg" onClick={startNewRound} className="text-xl px-12 py-6">
-                         <Play className="w-8 h-8 mr-3" />
+                     <div className="text-center px-4">
+                       <h2 className="text-2xl md:text-4xl font-black mb-4 md:mb-6">准备好训练你的耳朵了吗？</h2>
+                       <Button size="lg" onClick={startNewRound} className="text-base md:text-xl px-8 md:px-12 py-4 md:py-6">
+                         <Play className="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3" />
                          开始游戏
                        </Button>
                      </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-6">
+                    <div className="flex flex-col items-center gap-4 md:gap-6">
                        <Button 
                         onClick={() => playTargetNote()} 
                         variant="secondary"
-                        className="w-32 h-32 rounded-full !p-0 flex items-center justify-center border-4 border-dark shadow-neo-lg"
+                        className="w-24 h-24 md:w-32 md:h-32 rounded-full !p-0 flex items-center justify-center border-4 border-dark shadow-neo-lg"
                        >
-                         <Volume2 className="w-16 h-16" />
+                         <Volume2 className="w-12 h-12 md:w-16 md:h-16" />
                        </Button>
-                       <p className="text-xl font-bold opacity-60">
+                       <p className="text-base md:text-xl font-bold opacity-60">
                          {status === 'guessing' ? "聆听并辨认音符" : "结果"}
                        </p>
                     </div>
@@ -129,7 +129,7 @@ export const QuizMode = () => {
             </div>
             
             {/* Feedback Area - Fixed Height Container to prevent jump */}
-            <div className="h-[240px] w-full flex items-center justify-center relative z-10"> 
+            <div className="h-[180px] md:h-[240px] w-full flex items-center justify-center relative z-10 px-4"> 
                <AnimatePresence mode="wait">
                   {status === 'result' && (
                     <MotionDiv
@@ -139,25 +139,25 @@ export const QuizMode = () => {
                       className="flex flex-col items-center w-full max-w-md"
                     >
                       {selectedNote === targetNote ? (
-                        <div className="w-full bg-secondary text-white p-6 rounded-xl border-3 border-dark shadow-neo flex items-center gap-4">
-                          <Check className="w-10 h-10 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-bold text-xl">回答正确！</p>
-                            <p className="opacity-90">正确答案是 {getNoteName(targetNote!).fullName}</p>
+                        <div className="w-full bg-secondary text-white p-4 md:p-6 rounded-xl border-3 border-dark shadow-neo flex items-center gap-3 md:gap-4">
+                          <Check className="w-8 h-8 md:w-10 md:h-10 shrink-0" />
+                          <div className="text-left min-w-0">
+                            <p className="font-bold text-lg md:text-xl">回答正确！</p>
+                            <p className="opacity-90 text-sm md:text-base truncate">正确答案是 {getNoteName(targetNote!).fullName}</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full bg-accent text-white p-6 rounded-xl border-3 border-dark shadow-neo flex items-center gap-4">
-                          <Frown className="w-10 h-10 shrink-0 text-dark" />
-                          <div className="text-left text-dark">
-                            <p className="font-bold text-xl">哎呀！</p>
-                            <p className="opacity-90">正确是 {getNoteName(targetNote!).fullName}，你选了 {getNoteName(selectedNote!).fullName}</p>
+                        <div className="w-full bg-accent text-white p-4 md:p-6 rounded-xl border-3 border-dark shadow-neo flex items-center gap-3 md:gap-4">
+                          <Frown className="w-8 h-8 md:w-10 md:h-10 shrink-0 text-dark" />
+                          <div className="text-left text-dark min-w-0">
+                            <p className="font-bold text-lg md:text-xl">哎呀！</p>
+                            <p className="opacity-90 text-sm md:text-base truncate">正确是 {getNoteName(targetNote!).fullName}，你选了 {getNoteName(selectedNote!).fullName}</p>
                           </div>
                         </div>
                       )}
                       
-                      <Button onClick={startNewRound} className="mt-8 px-8 py-3 text-lg w-full max-w-xs" size="lg">
-                        下一题 <ArrowLeft className="w-6 h-6 ml-2 rotate-180" />
+                      <Button onClick={startNewRound} className="mt-4 md:mt-8 px-6 md:px-8 py-2 md:py-3 text-base md:text-lg w-full max-w-xs" size="lg">
+                        下一题 <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 ml-2 rotate-180" />
                       </Button>
                     </MotionDiv>
                   )}
@@ -166,7 +166,7 @@ export const QuizMode = () => {
         </div>
 
         {/* Bottom: Piano - Fixed at bottom */}
-        <div className="shrink-0 w-full pb-4 pt-2">
+        <div className="shrink-0 w-full pb-2 md:pb-4 pt-2 overflow-x-auto hide-scrollbar">
            <PianoKeyboard 
               startMidi={MIN_MIDI} 
               endMidi={MAX_MIDI}

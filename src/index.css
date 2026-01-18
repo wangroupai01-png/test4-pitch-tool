@@ -3,30 +3,96 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
   body {
     @apply bg-light-bg text-slate-900;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 @layer utilities {
   .pattern-grid-lg {
-    background-image: radial-gradient(#7F5AF0 2px, transparent 2px); /* Changed to dots for cleaner look */
+    background-image: radial-gradient(#7F5AF0 2px, transparent 2px);
     background-size: 30px 30px;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Safe area insets for notched phones */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 12px;
+/* Custom scrollbar for desktop */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FFFFFE;
+    border-left: 3px solid #16161a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #16161a;
+    border: 3px solid #FFFFFE; 
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #7F5AF0;
+  }
 }
-::-webkit-scrollbar-track {
-  background: #FFFFFE;
-  border-left: 3px solid #16161a;
+
+/* Mobile scrollbar - smaller and less obtrusive */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
 }
-::-webkit-scrollbar-thumb {
-  background: #16161a;
-  border: 3px solid #FFFFFE; 
+
+/* Landscape orientation optimization hint */
+@media (max-width: 767px) and (orientation: portrait) {
+  .landscape-hint::before {
+    content: "横屏体验更佳";
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1000;
+    animation: fadeInOut 3s ease-in-out forwards;
+  }
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #7F5AF0;
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
 }
