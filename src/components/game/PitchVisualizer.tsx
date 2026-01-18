@@ -21,27 +21,20 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
   const historyRef = useRef<Array<{ time: number; midi: number; cents: number }>>([]);
 
   // Config
-  const NOTE_HEIGHT = 20; // Pixels per semitone
+  const NOTE_HEIGHT = 15; // Reduced to show more notes (about 33 semitones visible)
   const SPEED = 2; // Pixels per frame
   
-  // Dynamic range centering
-  const [centerMidi, setCenterMidi] = useState(60); // C4
+  // Dynamic range centering - Fixed at E4 for better range coverage (C3 to G5+)
+  const [centerMidi, setCenterMidi] = useState(64); // E4
 
   useEffect(() => {
-    // Logic for determining center view
+    // Only move view when there's a specific target (SingMode)
+    // In FreeMode, keep the view fixed at C4 for visual stability
     if (targetMidi) {
-        // If there is a target, lock view to target
         setCenterMidi(targetMidi);
-    } else if (pitch && pitch.clarity > 0.8) { 
-        // Free mode: Follow user pitch
-        const target = pitch.midi;
-        if (Math.abs(target - centerMidi) > 12) {
-            setCenterMidi(target);
-        } else {
-            setCenterMidi(prev => prev + (target - prev) * 0.05);
-        }
     }
-  }, [pitch, targetMidi]);
+    // Removed: auto-following user pitch which caused jittery movement
+  }, [targetMidi]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -61,7 +54,8 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
 
     // Draw Grid Lines (Semitones)
     const centerY = h / 2;
-    const visibleSemitones = Math.ceil(h / NOTE_HEIGHT);
+    // Increased buffer significantly to +48 to ensure grid fills everything
+    const visibleSemitones = Math.ceil(h / NOTE_HEIGHT) + 48;
     const startMidi = Math.floor(centerMidi - visibleSemitones / 2);
     const endMidi = Math.ceil(centerMidi + visibleSemitones / 2);
 
@@ -70,11 +64,13 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
     ctx.font = "bold 12px Inter";
-
+    
     for (let m = startMidi; m <= endMidi; m++) {
       const y = centerY - (m - centerMidi) * NOTE_HEIGHT;
       
-      const noteName = noteNames[m % 12];
+      // Handle negative MIDI values safely for note name lookup
+      const noteIndex = ((m % 12) + 12) % 12;
+      const noteName = noteNames[noteIndex];
       const isBlackKey = noteName.includes("#");
       const isC = noteName === "C";
       const isTarget = targetMidi && m === targetMidi;
@@ -85,21 +81,21 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
           ctx.fillRect(0, y - NOTE_HEIGHT/2, w, NOTE_HEIGHT);
       }
 
-      // Line style
+      // Line style - Brighter lines as requested
       if (isTarget) {
         ctx.strokeStyle = "#2CB67D"; // Target Green
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]); // Dashed line for target
       } else if (isC) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; // Brighter C
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
       } else if (!isBlackKey) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Brighter white keys
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
       } else {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; // Brighter black keys
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
       }
@@ -210,10 +206,13 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
   }, [centerMidi, pitch, isListening, targetMidi]); 
 
   return (
-    <div className={`w-full h-full relative ${className || ''}`}>
+    <div 
+      className={className || ''} 
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <canvas 
         ref={canvasRef} 
-        className="w-full h-full block"
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block' }}
       />
     </div>
   );

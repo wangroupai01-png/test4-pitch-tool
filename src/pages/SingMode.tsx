@@ -37,8 +37,9 @@ export const SingMode = () => {
     setGameState('playing');
     setProgress(0);
     // Play the target note so they know what it sounds like
+    // Using 'sine' for cleaner, more pitch-accurate sound
     setTimeout(() => {
-        playNote(getFrequency(note), 1.0, 'triangle');
+        playNote(getFrequency(note), 1.5, 'sine');
     }, 500);
   };
 
@@ -184,7 +185,7 @@ export const SingMode = () => {
                             variant="ghost" 
                             size="sm" 
                             className="mt-2 text-white/80 hover:bg-white/20"
-                            onClick={() => targetMidi && playNote(getFrequency(targetMidi), 1.0, 'triangle')}
+                            onClick={() => targetMidi && playNote(getFrequency(targetMidi), 1.5, 'sine')}
                          >
                              <Volume2 className="w-4 h-4 mr-1" /> 重听示范
                          </Button>

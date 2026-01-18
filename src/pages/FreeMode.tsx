@@ -33,15 +33,16 @@ export const FreeMode = () => {
       <header className="mb-8 flex items-center justify-between">
         <Button 
           onClick={() => navigate('/')}
-          variant="outline"
-          className="!rounded-full !px-4"
+          variant="ghost"
+          size="sm"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          返回
         </Button>
         <h1 className="text-3xl md:text-4xl font-black text-dark bg-white border-3 border-dark px-6 py-2 shadow-neo -rotate-1">
           自由练习模式
         </h1>
-        <div className="w-12"></div> {/* Spacer */}
+        <div className="w-20"></div> {/* Spacer */}
       </header>
 
       {/* Main Content */}

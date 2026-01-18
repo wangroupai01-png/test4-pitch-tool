@@ -41,7 +41,7 @@ export const QuizMode = () => {
   const playTargetNote = (note: number = targetNote!) => {
     if (!note) return;
     const freq = getFrequency(note);
-    playNote(freq, 0.8, 'triangle');
+    playNote(freq, 1.2, 'sine'); // Using 'sine' for cleaner, more pitch-accurate sound
   };
 
   const handleNoteClick = (midi: number) => {
