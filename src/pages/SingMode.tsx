@@ -9,6 +9,9 @@ import { ArrowLeft, Mic, Trophy, Play, Check, Volume2, Music } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { useUserStore } from '../store/useUserStore';
+import { supabase } from '../lib/supabase';
+import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
 
@@ -20,9 +23,12 @@ export const SingMode = () => {
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [progress, setProgress] = useState(0); // 0 to 100
+  const [bestLevel, setBestLevel] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
   
   const { startListening, stopListening, isListening, pitch } = usePitchDetector();
   const { playNote } = useAudioPlayer();
+  const { user, isGuest, updateGuestScore, guestData } = useUserStore();
 
   // Difficulty range
   const MIN_MIDI = 53; // F3
@@ -30,6 +36,80 @@ export const SingMode = () => {
 
   const HOLD_DURATION_MS = 1500; // Need to hold note for 1.5s
   const lastTimeRef = useRef<number>(0);
+
+  // Load best score on mount
+  useEffect(() => {
+    if (isGuest) {
+      setBestScore(guestData.singHighScore);
+      setBestLevel(guestData.singBestLevel);
+    } else if (user) {
+      loadBestScore();
+    }
+  }, [user, isGuest]);
+
+  const loadBestScore = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('leaderboard')
+      .select('best_score, best_level')
+      .eq('user_id', user.id)
+      .eq('game_mode', 'sing')
+      .single();
+    
+    if (data) {
+      setBestScore(data.best_score);
+      setBestLevel(data.best_level);
+    }
+  };
+
+  const saveScore = async (finalScore: number, finalLevel: number) => {
+    if (isGuest) {
+      updateGuestScore('sing', finalScore, finalLevel);
+      if (finalScore > bestScore) {
+        setBestScore(finalScore);
+      }
+      if (finalLevel > bestLevel) {
+        setBestLevel(finalLevel);
+      }
+    } else if (user) {
+      // Save to Supabase
+      const { data: existing } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('game_mode', 'sing')
+        .single();
+
+      if (existing) {
+        // Update if better
+        const newBestScore = Math.max(finalScore, existing.best_score);
+        const newBestLevel = Math.max(finalLevel, existing.best_level);
+        
+        await supabase
+          .from('leaderboard')
+          .update({
+            best_score: newBestScore,
+            best_level: newBestLevel,
+            total_games: existing.total_games + 1,
+          })
+          .eq('id', existing.id);
+        
+        setBestScore(newBestScore);
+        setBestLevel(newBestLevel);
+      } else {
+        // Create new entry
+        await supabase.from('leaderboard').insert({
+          user_id: user.id,
+          game_mode: 'sing',
+          best_score: finalScore,
+          best_level: finalLevel,
+          total_games: 1,
+        });
+        setBestScore(finalScore);
+        setBestLevel(finalLevel);
+      }
+    }
+  };
 
   const nextLevel = () => {
     const note = getRandomNote(MIN_MIDI, MAX_MIDI);
@@ -81,7 +161,13 @@ export const SingMode = () => {
 
   const handleSuccess = () => {
     setGameState('success');
-    setScore(s => s + 100);
+    const newScore = score + 100;
+    const newLevel = level + 1;
+    setScore(newScore);
+    
+    // Save score after each level
+    saveScore(newScore, level);
+    
     if (targetMidi) {
         playNote(getFrequency(targetMidi), 0.2, 'sine');
         playNote(getFrequency(targetMidi + 4), 0.2, 'sine');
@@ -96,7 +182,7 @@ export const SingMode = () => {
     });
 
     setTimeout(() => {
-        setLevel(l => l + 1);
+        setLevel(newLevel);
         nextLevel();
     }, 2000);
   };
@@ -117,10 +203,16 @@ export const SingMode = () => {
             <span className="hidden sm:inline">返回</span>
           </Button>
         </Link>
-        <div className="flex gap-2 md:gap-4">
+        <div className="flex gap-2 md:gap-4 items-center">
+            {score > 0 && (
+              <ShareButton score={score} mode="哼唱闯关" />
+            )}
             <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
                 <Music className="w-4 h-4 md:w-5 md:h-5 text-accent" />
                 <span className="font-bold text-sm md:text-base">Lv.{level}</span>
+                {bestLevel > 0 && (
+                  <span className="text-xs text-slate-400 hidden sm:inline">/ 最高 {bestLevel}</span>
+                )}
             </Card>
             <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
                 <Trophy className="w-4 h-4 md:w-5 md:h-5 text-primary" />

@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { PianoKeyboard } from '../components/game/PianoKeyboard';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { getRandomNote, getFrequency, getNoteName } from '../utils/musicTheory';
-import { ArrowLeft, Play, Volume2, Trophy, Frown, Check } from 'lucide-react';
+import { ArrowLeft, Play, Volume2, Trophy, Frown, Check, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { useUserStore } from '../store/useUserStore';
+import { supabase } from '../lib/supabase';
+import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
 
@@ -19,11 +22,84 @@ export const QuizMode = () => {
   const [selectedNote, setSelectedNote] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
   
   const { playNote } = useAudioPlayer();
+  const { user, isGuest, updateGuestScore, guestData } = useUserStore();
 
   const MIN_MIDI = 48; // C3
   const MAX_MIDI = 72; // C5
+
+  // Load best score on mount
+  useEffect(() => {
+    if (isGuest) {
+      setBestScore(guestData.quizHighScore);
+    } else if (user) {
+      loadBestScore();
+    }
+  }, [user, isGuest]);
+
+  const loadBestScore = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('leaderboard')
+      .select('best_score')
+      .eq('user_id', user.id)
+      .eq('game_mode', 'quiz')
+      .single();
+    
+    if (data) {
+      setBestScore(data.best_score);
+    }
+  };
+
+  const saveScore = async (finalScore: number, finalStreak: number) => {
+    if (isGuest) {
+      updateGuestScore('quiz', finalScore, 1, finalStreak);
+      if (finalScore > bestScore) {
+        setBestScore(finalScore);
+      }
+    } else if (user) {
+      // Save to Supabase
+      const { data: existing } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('game_mode', 'quiz')
+        .single();
+
+      if (existing) {
+        // Update if better
+        if (finalScore > existing.best_score) {
+          await supabase
+            .from('leaderboard')
+            .update({
+              best_score: finalScore,
+              total_games: existing.total_games + 1,
+            })
+            .eq('id', existing.id);
+          setBestScore(finalScore);
+        } else {
+          await supabase
+            .from('leaderboard')
+            .update({
+              total_games: existing.total_games + 1,
+            })
+            .eq('id', existing.id);
+        }
+      } else {
+        // Create new entry
+        await supabase.from('leaderboard').insert({
+          user_id: user.id,
+          game_mode: 'quiz',
+          best_score: finalScore,
+          best_level: 1,
+          total_games: 1,
+        });
+        setBestScore(finalScore);
+      }
+    }
+  };
 
   const startNewRound = () => {
     const note = getRandomNote(MIN_MIDI, MAX_MIDI);
@@ -55,8 +131,14 @@ export const QuizMode = () => {
 
     if (midi === targetNote) {
       // Correct
-      setScore(s => s + 10 + (streak * 2));
-      setStreak(s => s + 1);
+      const newScore = score + 10 + (streak * 2);
+      const newStreak = streak + 1;
+      setScore(newScore);
+      setStreak(newStreak);
+      
+      // Save score
+      saveScore(newScore, newStreak);
+      
       confetti({
         particleCount: 100,
         spread: 70,
@@ -64,7 +146,8 @@ export const QuizMode = () => {
         colors: ['#7F5AF0', '#2CB67D', '#FF8906']
       });
     } else {
-      // Wrong
+      // Wrong - game essentially "ends" this streak, save score
+      saveScore(score, streak);
       setStreak(0);
     }
   };
@@ -79,10 +162,16 @@ export const QuizMode = () => {
             <span className="hidden sm:inline">返回</span>
           </Button>
         </Link>
-        <div className="flex gap-2 md:gap-4">
+        <div className="flex gap-2 md:gap-4 items-center">
+          {score > 0 && (
+            <ShareButton score={score} mode="听音辨位" />
+          )}
           <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
             <Trophy className="w-4 h-4 md:w-5 md:h-5 text-accent" />
             <span className="font-bold text-sm md:text-base">{score}</span>
+            {bestScore > 0 && (
+              <span className="text-xs text-slate-400 hidden sm:inline">/ 最高 {bestScore}</span>
+            )}
           </Card>
           <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 md:gap-2 bg-white">
             <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
