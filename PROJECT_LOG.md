@@ -15,10 +15,35 @@
 - **音频**: Web Audio API + Salamander Grand Piano 采样
 - **音高检测**: Pitchfinder (YIN 算法)
 - **特效**: canvas-confetti
+- **后端**: Supabase (认证 + 数据库)
+- **状态管理**: Zustand (带持久化)
 
 ---
 
 ## 关键开发节点
+
+### 2026-01-20: Supabase 集成 (用户系统 + 排行榜 + 分享)
+**新增功能**:
+- 游客模式：数据存储在本地 localStorage
+- 邮箱登录/注册：使用 Supabase Auth
+- 排行榜系统：展示全服玩家最高分
+- 分享功能：Web Share API + 复制链接
+
+**相关文件**:
+- `src/lib/supabase.ts` - Supabase 客户端配置
+- `src/lib/supabase-schema.sql` - 数据库表结构
+- `src/store/useUserStore.ts` - 用户状态管理 (Zustand)
+- `src/components/auth/AuthModal.tsx` - 登录/注册弹窗
+- `src/components/auth/UserButton.tsx` - 用户按钮组件
+- `src/components/ui/ShareButton.tsx` - 分享按钮
+- `src/components/game/Leaderboard.tsx` - 排行榜组件
+
+**Supabase 配置**:
+- Project ID: `xuxfmetjjfeaexwllpyd`
+- 数据库表: `profiles`, `leaderboard`
+- RLS 策略已启用
+
+---
 
 ### 2026-01-20: 移动端适配优化
 **变更内容**:
@@ -103,26 +128,35 @@ const SAMPLE_BASE_URL = 'https://cdn.jsdelivr.net/gh/surikov/webaudio-tinysynth@
 ```
 src/
 ├── components/
+│   ├── auth/
+│   │   ├── AuthModal.tsx       # 登录/注册弹窗
+│   │   └── UserButton.tsx      # 用户按钮
 │   ├── game/
+│   │   ├── Leaderboard.tsx     # 排行榜弹窗
 │   │   ├── PianoKeyboard.tsx   # 钢琴键盘组件
 │   │   └── PitchVisualizer.tsx # 音高可视化器
 │   └── ui/
 │       ├── Button.tsx          # 通用按钮
-│       └── Card.tsx            # 通用卡片
+│       ├── Card.tsx            # 通用卡片
+│       └── ShareButton.tsx     # 分享按钮
 ├── hooks/
 │   ├── useAudioPlayer.ts       # 音频播放 (钢琴采样)
 │   ├── usePitchDetector.ts     # 音高检测
 │   └── useAudioContext.ts      # AudioContext 管理
+├── lib/
+│   ├── supabase.ts             # Supabase 客户端
+│   └── supabase-schema.sql     # 数据库 Schema
 ├── pages/
 │   ├── Home.tsx                # 首页
 │   ├── FreeMode.tsx            # 自由练习
 │   ├── QuizMode.tsx            # 听音辨位
 │   └── SingMode.tsx            # 哼唱闯关
+├── store/
+│   ├── useGameStore.ts         # 游戏状态管理
+│   └── useUserStore.ts         # 用户状态管理
 ├── utils/
 │   ├── musicTheory.ts          # 音乐理论工具函数
 │   └── pitchDetection.ts       # 音高检测算法
-├── store/
-│   └── useGameStore.ts         # 全局状态管理
 ├── App.tsx                     # 路由配置
 ├── main.tsx                    # 入口文件
 └── index.css                   # 全局样式
