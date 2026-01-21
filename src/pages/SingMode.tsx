@@ -49,16 +49,28 @@ export const SingMode = () => {
 
   const loadBestScore = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('leaderboard')
-      .select('best_score, best_level')
-      .eq('user_id', user.id)
-      .eq('game_mode', 'sing')
-      .single();
-    
-    if (data) {
-      setBestScore(data.best_score);
-      setBestLevel(data.best_level);
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('best_score, best_level')
+        .eq('user_id', user.id)
+        .eq('game_mode', 'sing')
+        .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
+      
+      if (error) {
+        console.error('[SingMode] Error loading best score:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log('[SingMode] Loaded best score:', data.best_score, 'level:', data.best_level);
+        setBestScore(data.best_score);
+        setBestLevel(data.best_level);
+      } else {
+        console.log('[SingMode] No existing score found for user');
+      }
+    } catch (err) {
+      console.error('[SingMode] Unexpected error loading best score:', err);
     }
   };
 
@@ -88,11 +100,11 @@ export const SingMode = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('game_mode', 'sing')
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 means no rows found, which is ok
+      if (fetchError) {
         console.error('[SingMode] Error fetching existing score:', fetchError);
+        return;
       }
 
       if (existing) {
@@ -118,18 +130,19 @@ export const SingMode = () => {
         }
       } else {
         // Create new entry
-        const { error: insertError } = await supabase.from('leaderboard').insert({
+        const { data: insertData, error: insertError } = await supabase.from('leaderboard').insert({
           user_id: user.id,
           game_mode: 'sing',
           best_score: finalScore,
           best_level: finalLevel,
           total_games: 1,
-        });
+        }).select();
         
         if (insertError) {
           console.error('[SingMode] Error inserting score:', insertError);
+          console.error('[SingMode] Error details:', JSON.stringify(insertError));
         } else {
-          console.log('[SingMode] Score inserted successfully');
+          console.log('[SingMode] Score inserted successfully, data:', insertData);
           setBestScore(finalScore);
           setBestLevel(finalLevel);
         }

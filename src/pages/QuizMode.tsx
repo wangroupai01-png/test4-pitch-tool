@@ -41,15 +41,27 @@ export const QuizMode = () => {
 
   const loadBestScore = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('leaderboard')
-      .select('best_score')
-      .eq('user_id', user.id)
-      .eq('game_mode', 'quiz')
-      .single();
-    
-    if (data) {
-      setBestScore(data.best_score);
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('best_score')
+        .eq('user_id', user.id)
+        .eq('game_mode', 'quiz')
+        .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
+      
+      if (error) {
+        console.error('[QuizMode] Error loading best score:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log('[QuizMode] Loaded best score:', data.best_score);
+        setBestScore(data.best_score);
+      } else {
+        console.log('[QuizMode] No existing score found for user');
+      }
+    } catch (err) {
+      console.error('[QuizMode] Unexpected error loading best score:', err);
     }
   };
 
@@ -76,11 +88,11 @@ export const QuizMode = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('game_mode', 'quiz')
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 means no rows found, which is ok
+      if (fetchError) {
         console.error('[QuizMode] Error fetching existing score:', fetchError);
+        return;
       }
 
       if (existing) {
@@ -102,18 +114,19 @@ export const QuizMode = () => {
         }
       } else {
         // Create new entry
-        const { error: insertError } = await supabase.from('leaderboard').insert({
+        const { data: insertData, error: insertError } = await supabase.from('leaderboard').insert({
           user_id: user.id,
           game_mode: 'quiz',
           best_score: finalScore,
           best_level: 1,
           total_games: 1,
-        });
+        }).select();
         
         if (insertError) {
           console.error('[QuizMode] Error inserting score:', insertError);
+          console.error('[QuizMode] Error details:', JSON.stringify(insertError));
         } else {
-          console.log('[QuizMode] Score inserted successfully');
+          console.log('[QuizMode] Score inserted successfully, data:', insertData);
           setBestScore(finalScore);
         }
       }
