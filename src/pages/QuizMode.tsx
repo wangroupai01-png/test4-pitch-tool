@@ -59,45 +59,66 @@ export const QuizMode = () => {
       if (finalScore > bestScore) {
         setBestScore(finalScore);
       }
-    } else if (user) {
+      return;
+    }
+    
+    if (!user) {
+      console.log('[QuizMode] No user, skipping score save');
+      return;
+    }
+
+    try {
+      console.log('[QuizMode] Saving score for user:', user.id, 'score:', finalScore);
+      
       // Save to Supabase
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from('leaderboard')
         .select('*')
         .eq('user_id', user.id)
         .eq('game_mode', 'quiz')
         .single();
 
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is ok
+        console.error('[QuizMode] Error fetching existing score:', fetchError);
+      }
+
       if (existing) {
         // Update if better
-        if (finalScore > existing.best_score) {
-          await supabase
-            .from('leaderboard')
-            .update({
-              best_score: finalScore,
-              total_games: existing.total_games + 1,
-            })
-            .eq('id', existing.id);
-          setBestScore(finalScore);
+        const newBestScore = Math.max(finalScore, existing.best_score);
+        const { error: updateError } = await supabase
+          .from('leaderboard')
+          .update({
+            best_score: newBestScore,
+            total_games: existing.total_games + 1,
+          })
+          .eq('id', existing.id);
+        
+        if (updateError) {
+          console.error('[QuizMode] Error updating score:', updateError);
         } else {
-          await supabase
-            .from('leaderboard')
-            .update({
-              total_games: existing.total_games + 1,
-            })
-            .eq('id', existing.id);
+          console.log('[QuizMode] Score updated successfully');
+          setBestScore(newBestScore);
         }
       } else {
         // Create new entry
-        await supabase.from('leaderboard').insert({
+        const { error: insertError } = await supabase.from('leaderboard').insert({
           user_id: user.id,
           game_mode: 'quiz',
           best_score: finalScore,
           best_level: 1,
           total_games: 1,
         });
-        setBestScore(finalScore);
+        
+        if (insertError) {
+          console.error('[QuizMode] Error inserting score:', insertError);
+        } else {
+          console.log('[QuizMode] Score inserted successfully');
+          setBestScore(finalScore);
+        }
       }
+    } catch (err) {
+      console.error('[QuizMode] Unexpected error saving score:', err);
     }
   };
 
