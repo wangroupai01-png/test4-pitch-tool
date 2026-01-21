@@ -34,25 +34,43 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
     setLoading(true);
     setError(null);
     
+    // Add timeout to prevent infinite loading
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), 10000);
+    });
+    
     try {
-      // First get leaderboard entries
-      const { data: leaderboardData, error: leaderboardError } = await supabase
+      console.log('[Leaderboard] Fetching data for mode:', activeMode);
+      
+      // First get leaderboard entries with timeout
+      const fetchPromise = supabase
         .from('leaderboard')
         .select('*')
         .eq('game_mode', activeMode)
         .order('best_score', { ascending: false })
         .limit(20);
       
-      if (leaderboardError) throw leaderboardError;
+      const { data: leaderboardData, error: leaderboardError } = await Promise.race([
+        fetchPromise,
+        timeoutPromise
+      ]) as any;
+      
+      if (leaderboardError) {
+        console.error('[Leaderboard] Supabase error:', leaderboardError);
+        throw leaderboardError;
+      }
+      
+      console.log('[Leaderboard] Received data:', leaderboardData);
       
       if (!leaderboardData || leaderboardData.length === 0) {
+        console.log('[Leaderboard] No data found');
         setEntries([]);
         setLoading(false);
         return;
       }
       
       // Get user profiles for these entries
-      const userIds = leaderboardData.map(e => e.user_id);
+      const userIds = leaderboardData.map((e: any) => e.user_id);
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username')
@@ -61,7 +79,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
       // Create a map of user_id to username
       const usernameMap = new Map<string, string>();
       if (profilesData) {
-        profilesData.forEach(p => {
+        profilesData.forEach((p: any) => {
           usernameMap.set(p.id, p.username || '匿名玩家');
         });
       }
@@ -73,9 +91,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
       }));
       
       setEntries(transformedData);
-    } catch (err) {
-      console.error('Failed to fetch leaderboard:', err);
-      setError('加载排行榜失败');
+      console.log('[Leaderboard] Successfully loaded', transformedData.length, 'entries');
+    } catch (err: any) {
+      console.error('[Leaderboard] Failed to fetch:', err);
+      setError(err.message === '请求超时' ? '网络超时，请检查网络连接' : '加载排行榜失败');
     } finally {
       setLoading(false);
     }
