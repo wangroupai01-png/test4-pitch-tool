@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Medal, X, Crown, Loader2 } from 'lucide-react';
-import { supabase, LeaderboardEntry } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
+import type { LeaderboardEntry } from '../../lib/supabase';
 
 interface LeaderboardProps {
   isOpen: boolean;

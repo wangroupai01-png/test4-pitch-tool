@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase, UserProfile } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import type { UserProfile } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface UserState {
@@ -67,7 +68,7 @@ export const useUserStore = create<UserState>()(
           }
           
           // Listen for auth changes
-          supabase.auth.onAuthStateChange(async (event, session) => {
+          supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
               const { data: profile } = await supabase
                 .from('profiles')

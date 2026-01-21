@@ -5,7 +5,7 @@ import { useUserStore } from '../../store/useUserStore';
 import { AuthModal } from './AuthModal';
 
 export const UserButton: React.FC = () => {
-  const { user, profile, isGuest, guestData, signOut } = useUserStore();
+  const { user, profile, isGuest, signOut } = useUserStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   

@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { PianoKeyboard } from '../components/game/PianoKeyboard';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { getRandomNote, getFrequency, getNoteName } from '../utils/musicTheory';
-import { ArrowLeft, Play, Volume2, Trophy, Frown, Check, Share2 } from 'lucide-react';
+import { ArrowLeft, Play, Volume2, Trophy, Frown, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useUserStore } from '../store/useUserStore';
