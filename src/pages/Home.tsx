@@ -12,7 +12,6 @@ export const Home = () => {
   const MotionDiv = motion.div as any;
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [leaderboardMode, setLeaderboardMode] = useState<'quiz' | 'sing'>('quiz');
 
   const modes = [
     {
@@ -41,18 +40,13 @@ export const Home = () => {
     }
   ];
 
-  const handleShowLeaderboard = (mode: 'quiz' | 'sing') => {
-    setLeaderboardMode(mode);
-    setShowLeaderboard(true);
-  };
-
   return (
     <div className="min-h-screen bg-light-bg p-4 md:p-6 flex flex-col items-center pattern-grid-lg overflow-x-hidden">
       {/* Top Navigation Bar */}
       <header className="w-full max-w-6xl flex items-center justify-between mb-4 md:mb-8 z-20">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => handleShowLeaderboard('quiz')}
+            onClick={() => setShowLeaderboard(true)}
             className="flex items-center gap-2 bg-white border-3 border-dark px-3 md:px-4 py-2 rounded-full font-bold shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm md:text-base"
           >
             <Trophy className="w-4 h-4 md:w-5 md:h-5 text-accent" />
@@ -129,7 +123,6 @@ export const Home = () => {
       <Leaderboard 
         isOpen={showLeaderboard} 
         onClose={() => setShowLeaderboard(false)} 
-        mode={leaderboardMode}
       />
     </div>
   );

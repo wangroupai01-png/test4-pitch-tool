@@ -1,47 +1,75 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, X, Crown, Loader2 } from 'lucide-react';
+import { Trophy, Medal, X, Crown, Loader2, Headphones, Music } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { LeaderboardEntry } from '../../lib/supabase';
+
+interface LeaderboardEntry {
+  id: string;
+  user_id: string;
+  username: string;
+  game_mode: 'quiz' | 'sing';
+  best_score: number;
+  best_level: number;
+  total_games: number;
+}
 
 interface LeaderboardProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: 'quiz' | 'sing';
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, mode }) => {
+export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'quiz' | 'sing'>('quiz');
   
   useEffect(() => {
     if (isOpen) {
       fetchLeaderboard();
     }
-  }, [isOpen, mode]);
+  }, [isOpen, activeMode]);
   
   const fetchLeaderboard = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const { data, error } = await supabase
+      // First get leaderboard entries
+      const { data: leaderboardData, error: leaderboardError } = await supabase
         .from('leaderboard')
-        .select(`
-          *,
-          profiles:user_id (username)
-        `)
-        .eq('game_mode', mode)
+        .select('*')
+        .eq('game_mode', activeMode)
         .order('best_score', { ascending: false })
         .limit(20);
       
-      if (error) throw error;
+      if (leaderboardError) throw leaderboardError;
+      
+      if (!leaderboardData || leaderboardData.length === 0) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Get user profiles for these entries
+      const userIds = leaderboardData.map(e => e.user_id);
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', userIds);
+      
+      // Create a map of user_id to username
+      const usernameMap = new Map<string, string>();
+      if (profilesData) {
+        profilesData.forEach(p => {
+          usernameMap.set(p.id, p.username || '匿名玩家');
+        });
+      }
       
       // Transform data to include username
-      const transformedData = (data || []).map((entry: any) => ({
+      const transformedData = leaderboardData.map((entry: any) => ({
         ...entry,
-        username: entry.profiles?.username || '匿名玩家',
+        username: usernameMap.get(entry.user_id) || '匿名玩家',
       }));
       
       setEntries(transformedData);
@@ -68,7 +96,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, mode 
     }
   };
   
-  const modeTitle = mode === 'quiz' ? '听音辨位' : '哼唱闯关';
+  const tabs = [
+    { id: 'quiz' as const, label: '听音辨位', icon: Headphones },
+    { id: 'sing' as const, label: '哼唱闯关', icon: Music },
+  ];
   
   return (
     <AnimatePresence>
@@ -91,7 +122,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, mode 
             <div className="p-4 md:p-6 border-b-3 border-dark bg-primary text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Trophy className="w-6 h-6" />
-                <h2 className="text-xl md:text-2xl font-black">{modeTitle} 排行榜</h2>
+                <h2 className="text-xl md:text-2xl font-black">排行榜</h2>
               </div>
               <button
                 onClick={onClose}
@@ -99,6 +130,24 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, mode 
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+            
+            {/* Mode Tabs */}
+            <div className="flex border-b-2 border-slate-200">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveMode(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold transition-colors ${
+                    activeMode === tab.id
+                      ? 'bg-primary/10 text-primary border-b-3 border-primary -mb-[2px]'
+                      : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
             </div>
             
             {/* Content */}
@@ -146,7 +195,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, mode 
                       <div className="flex-1 min-w-0">
                         <p className="font-black truncate">{entry.username}</p>
                         <p className="text-xs text-slate-500">
-                          {mode === 'sing' ? `最高关卡: ${entry.best_level}` : `游戏次数: ${entry.total_games}`}
+                          {activeMode === 'sing' ? `最高关卡: ${entry.best_level}` : `游戏次数: ${entry.total_games}`}
                         </p>
                       </div>
                       
