@@ -22,6 +22,79 @@
 
 ## 关键开发节点
 
+### 2026-01-23: 音高检测升级 + 分数保存修复 + 昵称编辑功能
+
+#### 有效改动
+
+**1. 音高检测算法升级 (YIN 算法)**
+- 从简单自相关升级为 YIN 算法，精度更高
+- FFT 缓冲区从 2048 增加到 4096
+- 添加中值滤波器消除检测抖动
+- 禁用浏览器自动音频处理 (echoCancellation, noiseSuppression, autoGainControl)
+
+**相关文件**:
+- `src/utils/pitchDetection.ts` - YIN 算法实现
+- `src/hooks/usePitchDetector.ts` - 添加平滑处理
+
+**2. 分数保存逻辑修复**
+- 跳过 score=0 的保存，避免创建空记录
+- 添加详细的控制台日志 `[QuizMode]` / `[SingMode]`
+- 使用 `.select()` 确认更新操作成功
+- 正确比较新分数和数据库最高分
+
+**相关文件**:
+- `src/pages/QuizMode.tsx`
+- `src/pages/SingMode.tsx`
+
+**3. 排行榜和用户成绩修复**
+- 使用 `.maybeSingle()` 替代 `.single()` 避免 406 错误
+- 添加 profiles 查询获取用户名
+- 简化错误处理，避免查询卡住
+
+**相关文件**:
+- `src/components/game/Leaderboard.tsx`
+- `src/components/auth/UserButton.tsx`
+
+**4. 昵称编辑功能**
+- 在设置页面添加昵称编辑功能
+- 昵称保存到 Supabase profiles 表
+- 排行榜显示用户昵称
+
+**相关文件**:
+- `src/components/auth/UserButton.tsx` - 添加设置模态框
+- `src/store/useUserStore.ts` - 添加 updateProfile 函数
+
+**5. Vercel SPA 路由修复**
+- 添加 `vercel.json` 配置文件
+- 所有路由重写到 `index.html`
+
+**相关文件**:
+- `vercel.json`
+
+#### 踩坑记录 (行不通的方法)
+
+**1. 排行榜使用 `.single()` 查询**
+- ❌ 问题：当没有匹配记录时抛出 406 错误
+- ✅ 解决：改用 `.maybeSingle()`，无记录时返回 null
+
+**2. 分数保存使用 upsert 直接覆盖**
+- ❌ 问题：upsert 会用新值覆盖，不会保留最高分
+- ✅ 解决：先查询现有记录，比较后再更新
+
+**3. 排行榜同时查询 leaderboard + profiles 表**
+- ❌ 问题：profiles 查询可能卡住导致排行榜无法加载
+- ✅ 解决：用 try-catch 包裹 profiles 查询，失败时显示默认用户名
+
+**4. 音高检测简单自相关算法**
+- ❌ 问题：容易受噪音干扰，检测不稳定
+- ✅ 解决：改用 YIN 算法 + 中值滤波
+
+**5. 浏览器音频自动处理**
+- ❌ 问题：echoCancellation/noiseSuppression 会干扰音高检测
+- ✅ 解决：在 getUserMedia 时显式禁用这些功能
+
+---
+
 ### 2026-01-20: Supabase 集成 (用户系统 + 排行榜 + 分享)
 **新增功能**:
 - 游客模式：数据存储在本地 localStorage
@@ -215,4 +288,4 @@ colors: {
 
 ---
 
-*最后更新: 2026-01-20*
+*最后更新: 2026-01-23*
