@@ -68,34 +68,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
         return;
       }
       
-      // Get user profiles for these entries
-      const userIds = leaderboardData.map((e: any) => e.user_id);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.warn('[Leaderboard] Failed to load profiles:', profilesError);
-        // Continue without usernames
-      }
-      
-      // Create a map of user_id to username
-      const usernameMap = new Map<string, string>();
-      if (profilesData) {
-        profilesData.forEach((p: any) => {
-          usernameMap.set(p.id, p.username || '匿名玩家');
-        });
-      }
-      
-      // Transform data to include username
+      // Skip profiles query - just use default username for now
+      // This simplifies the logic and avoids potential hangs
       const transformedData = leaderboardData.map((entry: any) => ({
         ...entry,
-        username: usernameMap.get(entry.user_id) || '匿名玩家',
+        username: '玩家',
       }));
       
+      console.log('[Leaderboard] Setting entries:', transformedData.length);
       setEntries(transformedData);
       console.log('[Leaderboard] Successfully loaded', transformedData.length, 'entries');
+      console.log('[Leaderboard] Setting loading to false');
     } catch (err: any) {
       console.error('[Leaderboard] Failed to fetch:', err);
       setError('网络错误，请检查网络连接');
