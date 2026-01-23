@@ -68,17 +68,38 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
         return;
       }
       
-      // Skip profiles query - just use default username for now
-      // This simplifies the logic and avoids potential hangs
+      // Get user profiles for usernames
+      const userIds = leaderboardData.map((e: any) => e.user_id);
+      console.log('[Leaderboard] Fetching profiles for:', userIds);
+      
+      let usernameMap = new Map<string, string>();
+      try {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', userIds);
+        
+        if (profilesError) {
+          console.warn('[Leaderboard] Failed to load profiles:', profilesError);
+        } else if (profilesData) {
+          console.log('[Leaderboard] Profiles loaded:', profilesData);
+          profilesData.forEach((p: any) => {
+            usernameMap.set(p.id, p.username || '匿名玩家');
+          });
+        }
+      } catch (profileErr) {
+        console.warn('[Leaderboard] Profile fetch error:', profileErr);
+      }
+      
+      // Transform data to include username
       const transformedData = leaderboardData.map((entry: any) => ({
         ...entry,
-        username: '玩家',
+        username: usernameMap.get(entry.user_id) || '匿名玩家',
       }));
       
       console.log('[Leaderboard] Setting entries:', transformedData.length);
       setEntries(transformedData);
       console.log('[Leaderboard] Successfully loaded', transformedData.length, 'entries');
-      console.log('[Leaderboard] Setting loading to false');
     } catch (err: any) {
       console.error('[Leaderboard] Failed to fetch:', err);
       setError('网络错误，请检查网络连接');

@@ -27,6 +27,7 @@ interface UserState {
   signOut: () => Promise<void>;
   updateGuestScore: (mode: 'quiz' | 'sing', score: number, level?: number, streak?: number) => void;
   syncGuestDataToCloud: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -185,6 +186,13 @@ export const useUserStore = create<UserState>()(
           }, {
             onConflict: 'user_id,game_mode',
           });
+        }
+      },
+      
+      updateProfile: (updates) => {
+        const { profile } = get();
+        if (profile) {
+          set({ profile: { ...profile, ...updates } });
         }
       },
     }),

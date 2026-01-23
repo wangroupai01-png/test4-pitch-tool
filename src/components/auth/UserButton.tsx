@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, Trophy, Settings, X, Headphones, Music } from 'lucide-react';
+import { User, LogOut, Trophy, Settings, X, Headphones, Music, Edit2, Check, Loader2 } from 'lucide-react';
 import { useUserStore } from '../../store/useUserStore';
 import { AuthModal } from './AuthModal';
 import { supabase } from '../../lib/supabase';
@@ -11,12 +11,16 @@ interface UserStats {
 }
 
 export const UserButton: React.FC = () => {
-  const { user, profile, isGuest, signOut, guestData } = useUserStore();
+  const { user, profile, isGuest, signOut, guestData, updateProfile } = useUserStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [editingUsername, setEditingUsername] = useState('');
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   
   const MotionDiv = motion.div as any;
 
@@ -94,6 +98,54 @@ export const UserButton: React.FC = () => {
     loadUserStats();
   };
 
+  const handleSaveUsername = async () => {
+    if (!user) return;
+    
+    const trimmedUsername = editingUsername.trim();
+    if (!trimmedUsername) {
+      setUsernameError('昵称不能为空');
+      return;
+    }
+    if (trimmedUsername.length < 2) {
+      setUsernameError('昵称至少需要2个字符');
+      return;
+    }
+    if (trimmedUsername.length > 20) {
+      setUsernameError('昵称不能超过20个字符');
+      return;
+    }
+    
+    setSavingUsername(true);
+    setUsernameError(null);
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: trimmedUsername })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('[Settings] Error updating username:', error);
+        if (error.code === '23505') {
+          setUsernameError('该昵称已被使用');
+        } else {
+          setUsernameError('保存失败: ' + error.message);
+        }
+      } else {
+        // Update local state
+        if (updateProfile) {
+          updateProfile({ username: trimmedUsername });
+        }
+        setShowSettingsModal(false);
+      }
+    } catch (err) {
+      console.error('[Settings] Unexpected error:', err);
+      setUsernameError('保存失败，请重试');
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -167,7 +219,9 @@ export const UserButton: React.FC = () => {
                   <button
                     onClick={() => {
                       setShowDropdown(false);
-                      alert('设置功能即将上线，敬请期待！');
+                      setEditingUsername(profile?.username || '');
+                      setUsernameError(null);
+                      setShowSettingsModal(true);
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-left transition-colors"
                   >
@@ -270,6 +324,88 @@ export const UserButton: React.FC = () => {
                   ) : (
                     <p className="text-slate-400 text-sm">暂无记录，快去挑战吧！</p>
                   )}
+                </div>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettingsModal && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowSettingsModal(false)}
+          >
+            <MotionDiv
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              className="bg-white border-3 border-dark rounded-2xl shadow-neo w-full max-w-sm overflow-hidden"
+            >
+              {/* Header */}
+              <div className="p-4 border-b-3 border-dark bg-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-6 h-6 text-dark" />
+                  <h2 className="text-xl font-black text-dark">设置</h2>
+                </div>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="p-2 hover:bg-black/10 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-dark" />
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="p-4 space-y-4">
+                {/* Username Edit */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 mb-2">
+                    <Edit2 className="w-4 h-4 inline mr-1" />
+                    昵称
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editingUsername}
+                      onChange={(e) => {
+                        setEditingUsername(e.target.value);
+                        setUsernameError(null);
+                      }}
+                      placeholder="输入你的昵称"
+                      maxLength={20}
+                      className="flex-1 px-4 py-3 border-3 border-dark rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      onClick={handleSaveUsername}
+                      disabled={savingUsername}
+                      className="px-4 py-3 bg-primary text-white border-3 border-dark rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {savingUsername ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Check className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {usernameError && (
+                    <p className="text-red-500 text-sm mt-2 font-bold">{usernameError}</p>
+                  )}
+                  <p className="text-slate-400 text-xs mt-2">昵称将显示在排行榜中</p>
+                </div>
+
+                {/* Email Display */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 mb-2">邮箱</label>
+                  <div className="px-4 py-3 bg-slate-100 border-2 border-slate-200 rounded-xl text-slate-600">
+                    {user?.email}
+                  </div>
                 </div>
               </div>
             </MotionDiv>
