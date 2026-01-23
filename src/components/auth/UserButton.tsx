@@ -38,17 +38,34 @@ export const UserButton: React.FC = () => {
       return;
     }
 
-    if (!user) return;
+    if (!user) {
+      console.log('[UserStats] No user, showing empty stats');
+      setUserStats({ quiz: null, sing: null });
+      setShowStatsModal(true);
+      return;
+    }
     
     setLoadingStats(true);
     try {
-      const { data } = await supabase
+      console.log('[UserStats] Loading stats for user:', user.id);
+      
+      const { data, error } = await supabase
         .from('leaderboard')
         .select('*')
         .eq('user_id', user.id);
       
-      const quizEntry = data?.find(e => e.game_mode === 'quiz');
-      const singEntry = data?.find(e => e.game_mode === 'sing');
+      if (error) {
+        console.error('[UserStats] Supabase error:', error);
+        // Still show modal with empty stats
+        setUserStats({ quiz: null, sing: null });
+        setShowStatsModal(true);
+        return;
+      }
+      
+      console.log('[UserStats] Received data:', data);
+      
+      const quizEntry = data?.find((e: any) => e.game_mode === 'quiz');
+      const singEntry = data?.find((e: any) => e.game_mode === 'sing');
       
       setUserStats({
         quiz: quizEntry ? {
@@ -63,7 +80,10 @@ export const UserButton: React.FC = () => {
       });
       setShowStatsModal(true);
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      console.error('[UserStats] Failed to load stats:', err);
+      // Still show modal with empty stats
+      setUserStats({ quiz: null, sing: null });
+      setShowStatsModal(true);
     } finally {
       setLoadingStats(false);
     }

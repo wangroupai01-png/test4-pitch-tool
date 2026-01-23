@@ -34,30 +34,29 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
     setLoading(true);
     setError(null);
     
-    // Add timeout to prevent infinite loading
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('请求超时')), 10000);
-    });
-    
     try {
       console.log('[Leaderboard] Fetching data for mode:', activeMode);
       
-      // First get leaderboard entries with timeout
-      const fetchPromise = supabase
+      // Simple fetch without complex timeout logic
+      const { data: leaderboardData, error: leaderboardError } = await supabase
         .from('leaderboard')
         .select('*')
         .eq('game_mode', activeMode)
         .order('best_score', { ascending: false })
         .limit(20);
       
-      const { data: leaderboardData, error: leaderboardError } = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]) as any;
-      
       if (leaderboardError) {
         console.error('[Leaderboard] Supabase error:', leaderboardError);
-        throw leaderboardError;
+        console.error('[Leaderboard] Error details:', JSON.stringify(leaderboardError));
+        
+        // Check if table doesn't exist
+        if (leaderboardError.code === '42P01') {
+          setError('数据库表未创建，请联系管理员');
+        } else {
+          setError('加载失败: ' + (leaderboardError.message || '未知错误'));
+        }
+        setLoading(false);
+        return;
       }
       
       console.log('[Leaderboard] Received data:', leaderboardData);
@@ -71,10 +70,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
       
       // Get user profiles for these entries
       const userIds = leaderboardData.map((e: any) => e.user_id);
-      const { data: profilesData } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username')
         .in('id', userIds);
+      
+      if (profilesError) {
+        console.warn('[Leaderboard] Failed to load profiles:', profilesError);
+        // Continue without usernames
+      }
       
       // Create a map of user_id to username
       const usernameMap = new Map<string, string>();
@@ -94,7 +98,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
       console.log('[Leaderboard] Successfully loaded', transformedData.length, 'entries');
     } catch (err: any) {
       console.error('[Leaderboard] Failed to fetch:', err);
-      setError(err.message === '请求超时' ? '网络超时，请检查网络连接' : '加载排行榜失败');
+      setError('网络错误，请检查网络连接');
     } finally {
       setLoading(false);
     }
