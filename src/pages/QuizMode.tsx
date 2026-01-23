@@ -65,9 +65,9 @@ export const QuizMode = () => {
     }
   };
 
-  const saveScore = async (finalScore: number, finalStreak: number) => {
+  const saveScore = async (finalScore: number, _finalStreak: number) => {
     if (isGuest) {
-      updateGuestScore('quiz', finalScore, 1, finalStreak);
+      updateGuestScore('quiz', finalScore, 1, _finalStreak);
       if (finalScore > bestScore) {
         setBestScore(finalScore);
       }
@@ -79,13 +79,19 @@ export const QuizMode = () => {
       return;
     }
 
+    // Skip saving if score is 0
+    if (finalScore === 0) {
+      console.log('[QuizMode] Score is 0, skipping save');
+      return;
+    }
+
     try {
       console.log('[QuizMode] Saving score for user:', user.id, 'score:', finalScore);
       
-      // Save to Supabase
+      // First check if record exists
       const { data: existing, error: fetchError } = await supabase
         .from('leaderboard')
-        .select('*')
+        .select('id, best_score, total_games')
         .eq('user_id', user.id)
         .eq('game_mode', 'quiz')
         .maybeSingle();
@@ -96,37 +102,45 @@ export const QuizMode = () => {
       }
 
       if (existing) {
-        // Update if better
+        // Record exists - only update if new score is higher
         const newBestScore = Math.max(finalScore, existing.best_score);
-        const { error: updateError } = await supabase
+        console.log('[QuizMode] Existing record found. Old best:', existing.best_score, 'New score:', finalScore, 'Will save:', newBestScore);
+        
+        const { data: updateData, error: updateError } = await supabase
           .from('leaderboard')
           .update({
             best_score: newBestScore,
             total_games: existing.total_games + 1,
           })
-          .eq('id', existing.id);
+          .eq('id', existing.id)
+          .select();
         
         if (updateError) {
           console.error('[QuizMode] Error updating score:', updateError);
+          console.error('[QuizMode] Update error details:', JSON.stringify(updateError));
         } else {
-          console.log('[QuizMode] Score updated successfully');
+          console.log('[QuizMode] Score updated successfully:', updateData);
           setBestScore(newBestScore);
         }
       } else {
-        // Create new entry
-        const { data: insertData, error: insertError } = await supabase.from('leaderboard').insert({
-          user_id: user.id,
-          game_mode: 'quiz',
-          best_score: finalScore,
-          best_level: 1,
-          total_games: 1,
-        }).select();
+        // No record exists - insert new
+        console.log('[QuizMode] No existing record, inserting new');
+        const { data: insertData, error: insertError } = await supabase
+          .from('leaderboard')
+          .insert({
+            user_id: user.id,
+            game_mode: 'quiz',
+            best_score: finalScore,
+            best_level: 1,
+            total_games: 1,
+          })
+          .select();
         
         if (insertError) {
           console.error('[QuizMode] Error inserting score:', insertError);
-          console.error('[QuizMode] Error details:', JSON.stringify(insertError));
+          console.error('[QuizMode] Insert error details:', JSON.stringify(insertError));
         } else {
-          console.log('[QuizMode] Score inserted successfully, data:', insertData);
+          console.log('[QuizMode] Score inserted successfully:', insertData);
           setBestScore(finalScore);
         }
       }

@@ -91,13 +91,19 @@ export const SingMode = () => {
       return;
     }
 
+    // Skip saving if score is 0
+    if (finalScore === 0) {
+      console.log('[SingMode] Score is 0, skipping save');
+      return;
+    }
+
     try {
       console.log('[SingMode] Saving score for user:', user.id, 'score:', finalScore, 'level:', finalLevel);
       
-      // Save to Supabase
+      // First check if record exists
       const { data: existing, error: fetchError } = await supabase
         .from('leaderboard')
-        .select('*')
+        .select('id, best_score, best_level, total_games')
         .eq('user_id', user.id)
         .eq('game_mode', 'sing')
         .maybeSingle();
@@ -108,41 +114,48 @@ export const SingMode = () => {
       }
 
       if (existing) {
-        // Update if better
+        // Record exists - only update if new score/level is higher
         const newBestScore = Math.max(finalScore, existing.best_score);
         const newBestLevel = Math.max(finalLevel, existing.best_level);
+        console.log('[SingMode] Existing record found. Old best:', existing.best_score, 'New score:', finalScore, 'Will save:', newBestScore);
         
-        const { error: updateError } = await supabase
+        const { data: updateData, error: updateError } = await supabase
           .from('leaderboard')
           .update({
             best_score: newBestScore,
             best_level: newBestLevel,
             total_games: existing.total_games + 1,
           })
-          .eq('id', existing.id);
+          .eq('id', existing.id)
+          .select();
         
         if (updateError) {
           console.error('[SingMode] Error updating score:', updateError);
+          console.error('[SingMode] Update error details:', JSON.stringify(updateError));
         } else {
-          console.log('[SingMode] Score updated successfully');
+          console.log('[SingMode] Score updated successfully:', updateData);
           setBestScore(newBestScore);
           setBestLevel(newBestLevel);
         }
       } else {
-        // Create new entry
-        const { data: insertData, error: insertError } = await supabase.from('leaderboard').insert({
-          user_id: user.id,
-          game_mode: 'sing',
-          best_score: finalScore,
-          best_level: finalLevel,
-          total_games: 1,
-        }).select();
+        // No record exists - insert new
+        console.log('[SingMode] No existing record, inserting new');
+        const { data: insertData, error: insertError } = await supabase
+          .from('leaderboard')
+          .insert({
+            user_id: user.id,
+            game_mode: 'sing',
+            best_score: finalScore,
+            best_level: finalLevel,
+            total_games: 1,
+          })
+          .select();
         
         if (insertError) {
           console.error('[SingMode] Error inserting score:', insertError);
-          console.error('[SingMode] Error details:', JSON.stringify(insertError));
+          console.error('[SingMode] Insert error details:', JSON.stringify(insertError));
         } else {
-          console.log('[SingMode] Score inserted successfully, data:', insertData);
+          console.log('[SingMode] Score inserted successfully:', insertData);
           setBestScore(finalScore);
           setBestLevel(finalLevel);
         }
