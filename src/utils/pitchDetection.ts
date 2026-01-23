@@ -1,80 +1,92 @@
-// Simple autocorrelation pitch detection
-// Based on typical implementations for web audio
+// YIN-based pitch detection algorithm
+// More accurate than simple autocorrelation
 
 export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number => {
   const SIZE = buffer.length;
+  
+  // Calculate RMS for noise gate
   let rms = 0;
-
   for (let i = 0; i < SIZE; i++) {
-    const val = buffer[i];
-    rms += val * val;
+    rms += buffer[i] * buffer[i];
   }
   rms = Math.sqrt(rms / SIZE);
 
-  // Increased noise gate threshold to reduce false positives from background noise
-  if (rms < 0.02) return -1;
+  // Noise gate - ignore very quiet signals
+  if (rms < 0.01) return -1;
 
-  // Trim the buffer to the range where signal is significant
-  // This helps avoid analyzing silence/noise at the edges
-  let r1 = 0;
-  let r2 = SIZE - 1;
-  const thres = 0.2;
-
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buffer[i]) < thres) {
-      r1 = i;
+  // YIN algorithm implementation
+  const yinBufferSize = Math.floor(SIZE / 2);
+  const yinBuffer = new Float32Array(yinBufferSize);
+  
+  // Step 1: Calculate the difference function
+  for (let tau = 0; tau < yinBufferSize; tau++) {
+    yinBuffer[tau] = 0;
+    for (let i = 0; i < yinBufferSize; i++) {
+      const delta = buffer[i] - buffer[i + tau];
+      yinBuffer[tau] += delta * delta;
+    }
+  }
+  
+  // Step 2: Cumulative mean normalized difference function
+  yinBuffer[0] = 1;
+  let runningSum = 0;
+  for (let tau = 1; tau < yinBufferSize; tau++) {
+    runningSum += yinBuffer[tau];
+    yinBuffer[tau] *= tau / runningSum;
+  }
+  
+  // Step 3: Absolute threshold
+  // Find the first dip below threshold
+  const threshold = 0.1;
+  let tauEstimate = -1;
+  
+  for (let tau = 2; tau < yinBufferSize; tau++) {
+    if (yinBuffer[tau] < threshold) {
+      // Find the local minimum
+      while (tau + 1 < yinBufferSize && yinBuffer[tau + 1] < yinBuffer[tau]) {
+        tau++;
+      }
+      tauEstimate = tau;
       break;
     }
   }
-  for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buffer[SIZE - i]) < thres) {
-      r2 = SIZE - i;
-      break;
-    }
-  }
-
-  const buffer2 = buffer.slice(r1, r2);
-  const c = new Array(buffer2.length).fill(0);
   
-  // Autocorrelation function
-  for (let i = 0; i < buffer2.length; i++) {
-    for (let j = 0; j < buffer2.length - i; j++) {
-      c[i] = c[i] + buffer2[j] * buffer2[j + i];
+  // If no pitch found with strict threshold, try a more lenient one
+  if (tauEstimate === -1) {
+    let minVal = Infinity;
+    let minTau = -1;
+    for (let tau = 2; tau < yinBufferSize; tau++) {
+      if (yinBuffer[tau] < minVal && yinBuffer[tau] < 0.5) {
+        minVal = yinBuffer[tau];
+        minTau = tau;
+      }
     }
-  }
-
-  // Find the first peak after the first zero crossing (or minimum)
-  // Skip the initial peak at lag 0
-  let d = 0;
-  while (c[d] > c[d + 1]) d++;
-  let maxval = -1;
-  let maxpos = -1;
-  
-  for (let i = d; i < c.length; i++) {
-    if (c[i] > maxval) {
-      maxval = c[i];
-      maxpos = i;
+    if (minTau !== -1) {
+      tauEstimate = minTau;
     }
   }
   
-  let T0 = maxpos;
-
-  // Parabolic interpolation for better precision
-  const x1 = c[T0 - 1];
-  const x2 = c[T0];
-  const x3 = c[T0 + 1];
+  if (tauEstimate === -1) return -1;
   
-  const a = (x1 + x3 - 2 * x2) / 2;
-  const b = (x3 - x1) / 2;
-  if (a) T0 = T0 - b / (2 * a);
-
-  // Frequency validation
-  // Human vocal range is roughly 85Hz (E2) to 1100Hz (C6)
-  // Let's be generous: 50Hz to 2000Hz
-  const freq = sampleRate / T0;
-  if (freq < 50 || freq > 2000) return -1;
-
-  return freq;
+  // Step 4: Parabolic interpolation for sub-sample precision
+  let betterTau = tauEstimate;
+  if (tauEstimate > 0 && tauEstimate < yinBufferSize - 1) {
+    const s0 = yinBuffer[tauEstimate - 1];
+    const s1 = yinBuffer[tauEstimate];
+    const s2 = yinBuffer[tauEstimate + 1];
+    const adjustment = (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+    if (isFinite(adjustment)) {
+      betterTau = tauEstimate + adjustment;
+    }
+  }
+  
+  // Calculate frequency
+  const frequency = sampleRate / betterTau;
+  
+  // Validate frequency range (human voice: ~80Hz to ~1100Hz, generous: 60Hz to 1500Hz)
+  if (frequency < 60 || frequency > 1500) return -1;
+  
+  return frequency;
 };
 
 // Convert frequency to Note Name
