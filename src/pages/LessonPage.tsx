@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, Star, ArrowRight, RotateCcw, List } from 'lucide-react';
+import { X, Volume2, Star, ArrowRight, RotateCcw, List, Mic, MicOff, Play, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { usePitchDetector } from '../hooks/usePitchDetector';
+import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
 import { showLevelUpToast } from '../components/game/LevelUpToast';
@@ -38,6 +40,9 @@ interface Question {
   answer?: string;
 }
 
+// Sing 课程相关状态
+type SingState = 'idle' | 'listening' | 'demo' | 'recording' | 'evaluating' | 'feedback';
+
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
 
@@ -46,6 +51,7 @@ export const LessonPage = () => {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const { playNote, isReady } = useAudioPlayer();
+  const { pitch, isListening, startListening, stopListening } = usePitchDetector();
   
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +63,12 @@ export const LessonPage = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [nextLessonId, setNextLessonId] = useState<string | null>(null);
   const [selectedIntervalAnswer, setSelectedIntervalAnswer] = useState<string | null>(null);
+  
+  // Sing 模式专用状态
+  const [singState, setSingState] = useState<SingState>('idle');
+  const [singProgress, setSingProgress] = useState(0); // 0-100 进度
+  const accuracyBufferRef = useRef<number[]>([]); // 用于收集准确度数据
+  const singTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (lessonId) {
@@ -70,9 +82,33 @@ export const LessonPage = () => {
       setNextLessonId(null);
       setGameState('loading');
       
+      // 重置 Sing 模式状态
+      setSingState('idle');
+      setSingProgress(0);
+      accuracyBufferRef.current = [];
+      if (singTimerRef.current) {
+        clearTimeout(singTimerRef.current);
+        singTimerRef.current = null;
+      }
+      if (isListening) {
+        stopListening();
+      }
+      
       loadLesson();
     }
   }, [lessonId]);
+
+  // 清理函数
+  useEffect(() => {
+    return () => {
+      if (singTimerRef.current) {
+        clearTimeout(singTimerRef.current);
+      }
+      if (isListening) {
+        stopListening();
+      }
+    };
+  }, []);
 
   const loadLesson = async () => {
     try {
@@ -116,6 +152,108 @@ export const LessonPage = () => {
       }
     }
   }, [currentQuestion, isReady, playNote]);
+
+  // ============ Sing 模式专用函数 ============
+
+  // 开始演示
+  const handleSingDemo = useCallback(() => {
+    if (!currentQuestion || !isReady || currentQuestion.targetMidi === undefined) return;
+    
+    setSingState('demo');
+    const frequency = getFrequency(currentQuestion.targetMidi);
+    playNote(frequency, 1.5); // 播放 1.5 秒
+    
+    // 演示结束后自动进入录音状态
+    setTimeout(() => {
+      setSingState('idle');
+    }, 1500);
+  }, [currentQuestion, isReady, playNote]);
+
+  // 开始录音跟唱
+  const handleStartSing = useCallback(async () => {
+    if (!currentQuestion || currentQuestion.targetMidi === undefined) return;
+    
+    setSingState('recording');
+    setSingProgress(0);
+    accuracyBufferRef.current = [];
+    
+    await startListening();
+    
+    const duration = currentQuestion.duration || 2000;
+    const startTime = Date.now();
+    
+    // 进度更新定时器
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setSingProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(progressInterval);
+      }
+    }, 50);
+    
+    // 录音结束定时器
+    singTimerRef.current = setTimeout(() => {
+      clearInterval(progressInterval);
+      stopListening();
+      evaluateSingPerformance();
+    }, duration);
+  }, [currentQuestion, startListening, stopListening]);
+
+  // 实时收集音准数据
+  useEffect(() => {
+    if (singState === 'recording' && pitch && currentQuestion?.targetMidi !== undefined) {
+      // 计算音高偏差（半音）
+      const deviation = Math.abs(pitch.midi - currentQuestion.targetMidi);
+      // 转换为准确度分数（0-100），偏差越小分数越高
+      const accuracy = Math.max(0, 100 - deviation * 50); // 偏差1个半音扣50分
+      accuracyBufferRef.current.push(accuracy);
+    }
+  }, [pitch, singState, currentQuestion]);
+
+  // 评估跟唱表现
+  const evaluateSingPerformance = useCallback(() => {
+    setSingState('evaluating');
+    
+    const samples = accuracyBufferRef.current;
+    let avgAccuracy = 0;
+    
+    if (samples.length > 0) {
+      // 过滤掉极低的样本（可能是静音或噪音）
+      const validSamples = samples.filter(s => s > 10);
+      if (validSamples.length > 0) {
+        avgAccuracy = validSamples.reduce((a, b) => a + b, 0) / validSamples.length;
+      }
+    }
+    
+    // 判断是否通过（准确度 >= 60%）
+    const passed = avgAccuracy >= 60;
+    setIsCorrect(passed);
+    
+    // 如果通过，增加正确计数
+    const newCorrectCount = passed ? correctCount + 1 : correctCount;
+    if (passed) {
+      setCorrectCount(newCorrectCount);
+    }
+    
+    setSingState('feedback');
+    setShowFeedback(true);
+    
+    // 延迟后进入下一题
+    setTimeout(() => {
+      if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setSingState('idle');
+        setSingProgress(0);
+        setShowFeedback(false);
+        accuracyBufferRef.current = [];
+      } else {
+        // 完成课程
+        handleLessonComplete(newCorrectCount);
+      }
+    }, 2000);
+  }, [correctCount, currentQuestionIndex, lesson]);
 
   const handleSelectAnswer = async (midi: number) => {
     if (showFeedback || !currentQuestion) return;
@@ -611,6 +749,159 @@ export const LessonPage = () => {
               exit={{ opacity: 0, y: -20 }}
               className="w-full"
             >
+              {/* ========== SING 模式 UI ========== */}
+              {lesson?.lesson_type === 'sing' ? (
+                <>
+                  {/* 音高可视化区域 */}
+                  <Card className="!p-0 relative overflow-hidden mb-6 h-64 border-3 border-dark">
+                    <PitchVisualizer 
+                      pitch={pitch} 
+                      isListening={isListening}
+                      targetMidi={currentQuestion.targetMidi}
+                    />
+                    
+                    {/* 覆盖层信息 */}
+                    <div className="absolute top-4 left-4 z-10">
+                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl border-2 border-dark shadow-neo-sm">
+                        <p className="font-black text-dark text-lg">
+                          目标音：{getMidiNoteName(currentQuestion.targetMidi!)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* 当前检测到的音高 */}
+                    {isListening && pitch && (
+                      <div className="absolute top-4 right-4 z-10">
+                        <div className={`px-4 py-2 rounded-xl border-2 border-dark shadow-neo-sm ${
+                          Math.abs(pitch.midi - currentQuestion.targetMidi!) < 0.5 
+                            ? 'bg-secondary text-white' 
+                            : 'bg-white/90 backdrop-blur-sm'
+                        }`}>
+                          <p className="font-black text-lg">
+                            {pitch.note}{pitch.octave}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 进度条 */}
+                    {singState === 'recording' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-2 bg-slate-200">
+                        <MotionDiv 
+                          className="h-full bg-gradient-to-r from-secondary to-primary"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${singProgress}%` }}
+                        />
+                      </div>
+                    )}
+                  </Card>
+                  
+                  {/* 状态提示和操作按钮 */}
+                  <Card className="!p-6 text-center">
+                    {singState === 'idle' && (
+                      <>
+                        <h2 className="text-2xl font-black text-dark mb-4">
+                          跟唱练习
+                        </h2>
+                        <p className="text-slate-500 font-bold mb-6">
+                          先听一遍目标音，然后跟着唱出来！
+                        </p>
+                        <div className="flex gap-4 justify-center">
+                          <Button 
+                            variant="secondary"
+                            className="px-6 py-3"
+                            onClick={handleSingDemo}
+                          >
+                            <Play className="w-5 h-5 mr-2" />
+                            听示范
+                          </Button>
+                          <Button 
+                            className="px-6 py-3"
+                            onClick={handleStartSing}
+                          >
+                            <Mic className="w-5 h-5 mr-2" />
+                            开始跟唱
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                    
+                    {singState === 'demo' && (
+                      <>
+                        <MotionDiv
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                          className="w-20 h-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center border-3 border-primary"
+                        >
+                          <Volume2 className="w-10 h-10 text-primary" />
+                        </MotionDiv>
+                        <h2 className="text-2xl font-black text-dark">
+                          正在播放示范...
+                        </h2>
+                      </>
+                    )}
+                    
+                    {singState === 'recording' && (
+                      <>
+                        <MotionDiv
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                          className="w-20 h-20 mx-auto mb-4 bg-red-500 rounded-full flex items-center justify-center border-3 border-dark shadow-neo"
+                        >
+                          <Mic className="w-10 h-10 text-white" />
+                        </MotionDiv>
+                        <h2 className="text-2xl font-black text-dark mb-2">
+                          正在录音...
+                        </h2>
+                        <p className="text-slate-500 font-bold">
+                          请唱出目标音并保持稳定
+                        </p>
+                      </>
+                    )}
+                    
+                    {singState === 'evaluating' && (
+                      <>
+                        <MotionDiv
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          className="w-12 h-12 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full"
+                        />
+                        <h2 className="text-xl font-black text-dark">
+                          正在分析...
+                        </h2>
+                      </>
+                    )}
+                    
+                    {singState === 'feedback' && (
+                      <MotionDiv
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                      >
+                        <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center border-3 border-dark shadow-neo ${
+                          isCorrect ? 'bg-secondary' : 'bg-red-500'
+                        }`}>
+                          {isCorrect ? (
+                            <CheckCircle className="w-10 h-10 text-white" />
+                          ) : (
+                            <MicOff className="w-10 h-10 text-white" />
+                          )}
+                        </div>
+                        <h2 className="text-2xl font-black text-dark mb-2">
+                          {isCorrect ? '非常棒！🎉' : '再试试！'}
+                        </h2>
+                        <p className="text-slate-500 font-bold">
+                          {isCorrect 
+                            ? '你的音准很准确！' 
+                            : '音准有些偏差，继续练习！'
+                          }
+                        </p>
+                      </MotionDiv>
+                    )}
+                  </Card>
+                </>
+              ) : (
+                /* ========== QUIZ 模式 UI ========== */
+                <>
               <Card className="!p-8 text-center relative overflow-hidden mb-6">
                 {/* Decorative elements */}
                 <div className="absolute -top-6 -right-6 w-24 h-24 bg-secondary/10 rounded-full border-3 border-dark/5" />
@@ -733,6 +1024,8 @@ export const LessonPage = () => {
                   </MotionDiv>
                 )}
               </AnimatePresence>
+                </>
+              )}
             </MotionDiv>
           )}
 
