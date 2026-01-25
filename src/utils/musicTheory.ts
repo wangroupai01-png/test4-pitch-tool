@@ -15,6 +15,13 @@ export const getNoteName = (midi: number): { note: string; octave: number; fullN
   };
 };
 
+// 简化的 MIDI 音符名称获取
+export const getMidiNoteName = (midi: number): string => {
+  const noteIndex = midi % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  return `${NOTE_NAMES[noteIndex]}${octave}`;
+};
+
 export const getRandomNote = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };

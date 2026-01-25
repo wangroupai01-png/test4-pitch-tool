@@ -1,0 +1,845 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Volume2, Star, ArrowRight, RotateCcw, List } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { supabase } from '../lib/supabase';
+import { useUserStore } from '../store/useUserStore';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
+import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
+import { showLevelUpToast } from '../components/game/LevelUpToast';
+
+interface Lesson {
+  id: string;
+  skill_id: string;
+  name: string;
+  description: string;
+  lesson_type: string;
+  lesson_order: number;
+  xp_reward: number;
+  content: {
+    type: string;
+    questions: Question[];
+    passThreshold: number;
+  };
+}
+
+interface Question {
+  type: string;
+  // 单音识别
+  targetMidi?: number;
+  options?: number[];
+  duration?: number;
+  // 音程识别
+  baseMidi?: number;
+  intervalSemitones?: number;
+  answer?: string;
+}
+
+const MotionDiv = motion.div as any;
+const MotionButton = motion.button as any;
+
+export const LessonPage = () => {
+  const { lessonId } = useParams<{ lessonId: string }>();
+  const navigate = useNavigate();
+  const { user } = useUserStore();
+  const { playNote, isReady } = useAudioPlayer();
+  
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [gameState, setGameState] = useState<'loading' | 'playing' | 'result'>('loading');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [nextLessonId, setNextLessonId] = useState<string | null>(null);
+  const [selectedIntervalAnswer, setSelectedIntervalAnswer] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (lessonId) {
+      // 重置所有游戏状态
+      setCurrentQuestionIndex(0);
+      setCorrectCount(0);
+      setSelectedAnswer(null);
+      setSelectedIntervalAnswer(null);
+      setShowFeedback(false);
+      setIsCorrect(false);
+      setNextLessonId(null);
+      setGameState('loading');
+      
+      loadLesson();
+    }
+  }, [lessonId]);
+
+  const loadLesson = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('id', lessonId)
+        .single();
+
+      if (error) {
+        console.error('[LessonPage] Error loading lesson:', error);
+        return;
+      }
+
+      setLesson(data);
+      setGameState('playing');
+    } catch (err) {
+      console.error('[LessonPage] Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentQuestion = lesson?.content?.questions?.[currentQuestionIndex];
+
+  const handlePlayNote = useCallback(() => {
+    if (currentQuestion && isReady) {
+      if (currentQuestion.type === 'interval' && currentQuestion.baseMidi !== undefined && currentQuestion.intervalSemitones !== undefined) {
+        // 音程类型：先播放基础音，然后播放第二个音
+        const baseFreq = getFrequency(currentQuestion.baseMidi);
+        const secondFreq = getFrequency(currentQuestion.baseMidi + currentQuestion.intervalSemitones);
+        
+        playNote(baseFreq);
+        setTimeout(() => {
+          playNote(secondFreq);
+        }, 600); // 间隔 600ms 播放第二个音
+      } else if (currentQuestion.targetMidi !== undefined) {
+        // 单音识别类型
+        const frequency = getFrequency(currentQuestion.targetMidi);
+        playNote(frequency);
+      }
+    }
+  }, [currentQuestion, isReady, playNote]);
+
+  const handleSelectAnswer = async (midi: number) => {
+    if (showFeedback || !currentQuestion) return;
+
+    setSelectedAnswer(midi);
+    const correct = midi === currentQuestion.targetMidi;
+    setIsCorrect(correct);
+    setShowFeedback(true);
+
+    // 计算新的正确数（因为 setState 是异步的）
+    const newCorrectCount = correct ? correctCount + 1 : correctCount;
+    
+    if (correct) {
+      setCorrectCount(newCorrectCount);
+    }
+
+    // 播放选择的音符（将 MIDI 转换为频率）
+    playNote(getFrequency(midi));
+
+    // 延迟后进入下一题
+    setTimeout(() => {
+      if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setSelectedAnswer(null);
+        setShowFeedback(false);
+      } else {
+        // 完成课程 - 传入最终的正确数量
+        handleLessonComplete(newCorrectCount);
+      }
+    }, 1500);
+  };
+
+  // 处理音程答案选择
+  const handleSelectIntervalAnswer = async (answer: string) => {
+    if (showFeedback || !currentQuestion) return;
+
+    setSelectedIntervalAnswer(answer);
+    const correct = answer === currentQuestion.answer;
+    setIsCorrect(correct);
+    setShowFeedback(true);
+
+    // 计算新的正确数
+    const newCorrectCount = correct ? correctCount + 1 : correctCount;
+    
+    if (correct) {
+      setCorrectCount(newCorrectCount);
+    }
+
+    // 延迟后进入下一题
+    setTimeout(() => {
+      if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setSelectedIntervalAnswer(null);
+        setShowFeedback(false);
+      } else {
+        // 完成课程
+        handleLessonComplete(newCorrectCount);
+      }
+    }, 1500);
+  };
+
+  const handleLessonComplete = async (finalCorrectCount: number) => {
+    setGameState('result');
+
+    // 计算分数用于显示（使用传入的最终正确数量）
+    const totalQuestions = lesson?.content?.questions?.length || 1;
+    const score = Math.round((finalCorrectCount / totalQuestions) * 100);
+    const passThreshold = lesson?.content?.passThreshold || 0.7;
+    const passed = score >= (passThreshold * 100);
+
+    console.log('[LessonPage] Lesson complete:', { 
+      lessonId: lesson?.id, 
+      score, 
+      passed, 
+      finalCorrectCount, 
+      totalQuestions,
+      userId: user?.id 
+    });
+
+    // 即使未登录，也尝试获取下一课信息
+    if (lesson && passed) {
+      await unlockNextLesson();
+    }
+
+    if (!lesson || !user) {
+      console.log('[LessonPage] Skipping save - no user or lesson');
+      return;
+    }
+    
+    // 计算星级
+    let stars = 0;
+    if (score >= 90) stars = 3;
+    else if (score >= 70) stars = 2;
+    else if (passed) stars = 1;
+
+    try {
+      // 保存进度
+      const { data: existing, error: selectError } = await supabase
+        .from('user_lesson_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lesson.id)
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('[LessonPage] Error fetching existing progress:', selectError);
+      }
+
+      const progressData = {
+        user_id: user.id,
+        lesson_id: lesson.id,
+        status: passed ? 'completed' : 'unlocked',
+        best_score: existing ? Math.max(score, existing.best_score) : score,
+        stars: existing ? Math.max(stars, existing.stars) : stars,
+        attempts: (existing?.attempts || 0) + 1,
+        last_attempt_at: new Date().toISOString(),
+        completed_at: passed ? new Date().toISOString() : null,
+      };
+
+      console.log('[LessonPage] Saving progress:', progressData);
+
+      const { error: upsertError } = await supabase
+        .from('user_lesson_progress')
+        .upsert(progressData, { onConflict: 'user_id,lesson_id' });
+
+      if (upsertError) {
+        console.error('[LessonPage] Error saving progress:', upsertError);
+      } else {
+        console.log('[LessonPage] Progress saved successfully');
+      }
+
+      // 如果通过，添加 XP
+      if (passed) {
+        // 只在首次完成时给 XP
+        if (!existing || existing.status !== 'completed') {
+          await addXP(lesson.xp_reward);
+        }
+        
+        // 更新打卡记录
+        await updateStreak(user.id);
+        
+        // 检查成就解锁
+        await checkAndUnlockAchievements(user.id);
+      }
+    } catch (err) {
+      console.error('[LessonPage] Error saving progress:', err);
+    }
+  };
+
+  const addXP = async (amount: number) => {
+    if (!user) return;
+
+    try {
+      // 获取当前 XP
+      const { data: xpData } = await supabase
+        .from('user_xp')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const today = new Date().toISOString().split('T')[0];
+      const isNewDay = xpData?.last_xp_date !== today;
+
+      const newTotalXp = (xpData?.total_xp || 0) + amount;
+      const newXpToday = isNewDay ? amount : (xpData?.xp_today || 0) + amount;
+
+      // 计算等级
+      const { data: levelData } = await supabase
+        .from('level_config')
+        .select('level')
+        .lte('required_xp', newTotalXp)
+        .order('level', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const newLevel = levelData?.level || 1;
+      const oldLevel = xpData?.current_level || 1;
+
+      await supabase
+        .from('user_xp')
+        .upsert({
+          user_id: user.id,
+          total_xp: newTotalXp,
+          current_level: newLevel,
+          xp_today: newXpToday,
+          last_xp_date: today,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      // 检测升级
+      if (newLevel > oldLevel) {
+        console.log('[LessonPage] Level up!', { oldLevel, newLevel });
+        // 延迟一点显示，让其他动画先完成
+        setTimeout(() => {
+          showLevelUpToast(newLevel);
+        }, 500);
+      }
+
+      // 记录 XP 日志
+      await supabase
+        .from('xp_logs')
+        .insert({
+          user_id: user.id,
+          xp_amount: amount,
+          source: 'lesson',
+          source_id: lesson?.id,
+        });
+    } catch (err) {
+      console.error('[LessonPage] Error adding XP:', err);
+    }
+  };
+
+  const unlockNextLesson = async () => {
+    if (!lesson) {
+      console.log('[LessonPage] unlockNextLesson: no lesson');
+      return;
+    }
+
+    console.log('[LessonPage] unlockNextLesson called:', {
+      lessonId: lesson.id,
+      skillId: lesson.skill_id,
+      lessonOrder: lesson.lesson_order
+    });
+
+    try {
+      // 获取同技能的下一课 (使用当前课程的 lesson_order)
+      const { data: nextLesson, error: queryError } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('skill_id', lesson.skill_id)
+        .gt('lesson_order', lesson.lesson_order)
+        .order('lesson_order')
+        .limit(1)
+        .maybeSingle();
+
+      console.log('[LessonPage] Next lesson query result:', { nextLesson, queryError });
+
+      if (nextLesson) {
+        // 设置下一课 ID 用于导航按钮
+        console.log('[LessonPage] Setting nextLessonId:', nextLesson.id);
+        setNextLessonId(nextLesson.id);
+        
+        // 如果用户已登录，解锁下一课
+        if (user) {
+          // 检查是否已有进度
+          const { data: existing } = await supabase
+            .from('user_lesson_progress')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('lesson_id', nextLesson.id)
+            .maybeSingle();
+
+          if (!existing) {
+            const { error } = await supabase
+              .from('user_lesson_progress')
+              .insert({
+                user_id: user.id,
+                lesson_id: nextLesson.id,
+                status: 'unlocked',
+              });
+            if (error) {
+              console.error('[LessonPage] Error inserting next lesson progress:', error);
+            } else {
+              console.log('[LessonPage] Next lesson unlocked:', nextLesson.id);
+            }
+          }
+        }
+      } else {
+        // 没有下一课，检查是否完成整个技能
+        await checkSkillCompletion();
+      }
+    } catch (err) {
+      console.error('[LessonPage] Error unlocking next lesson:', err);
+    }
+  };
+
+  // 解锁下一个技能及其第一课
+  const unlockNextSkill = async (currentSkillOrder: number) => {
+    if (!user) return;
+
+    try {
+      // 查找下一个技能
+      const { data: nextSkill, error: skillError } = await supabase
+        .from('skills')
+        .select('id')
+        .gt('skill_order', currentSkillOrder)
+        .order('skill_order')
+        .limit(1)
+        .maybeSingle();
+
+      console.log('[LessonPage] Next skill query:', { nextSkill, skillError });
+
+      if (!nextSkill) {
+        console.log('[LessonPage] No more skills to unlock');
+        return;
+      }
+
+      // 解锁该技能
+      const { error: skillProgressError } = await supabase
+        .from('user_skill_progress')
+        .upsert({
+          user_id: user.id,
+          skill_id: nextSkill.id,
+          status: 'unlocked',
+        }, { onConflict: 'user_id,skill_id' });
+
+      if (skillProgressError) {
+        console.error('[LessonPage] Error unlocking next skill:', skillProgressError);
+      } else {
+        console.log('[LessonPage] Next skill unlocked:', nextSkill.id);
+      }
+
+      // 解锁该技能的第一课
+      const { data: firstLesson, error: lessonError } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('skill_id', nextSkill.id)
+        .order('lesson_order')
+        .limit(1)
+        .maybeSingle();
+
+      console.log('[LessonPage] First lesson of next skill:', { firstLesson, lessonError });
+
+      if (firstLesson) {
+        // 检查是否已有进度
+        const { data: existing } = await supabase
+          .from('user_lesson_progress')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('lesson_id', firstLesson.id)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from('user_lesson_progress')
+            .insert({
+              user_id: user.id,
+              lesson_id: firstLesson.id,
+              status: 'unlocked',
+            });
+          if (error) {
+            console.error('[LessonPage] Error unlocking first lesson of next skill:', error);
+          } else {
+            console.log('[LessonPage] First lesson of next skill unlocked:', firstLesson.id);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[LessonPage] Error unlocking next skill:', err);
+    }
+  };
+
+  const checkSkillCompletion = async () => {
+    if (!lesson || !user) return;
+
+    try {
+      // 获取技能的所有课程
+      const { data: allLessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('skill_id', lesson.skill_id);
+
+      if (!allLessons) return;
+
+      // 获取用户完成的课程
+      const { data: completedLessons } = await supabase
+        .from('user_lesson_progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+
+      const completedIds = new Set(completedLessons?.map(l => l.lesson_id));
+      const allCompleted = allLessons.every(l => completedIds.has(l.id));
+
+      if (allCompleted) {
+        console.log('[LessonPage] All lessons completed for skill:', lesson.skill_id);
+        
+        // 标记技能完成
+        await supabase
+          .from('user_skill_progress')
+          .upsert({
+            user_id: user.id,
+            skill_id: lesson.skill_id,
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,skill_id' });
+
+        // 获取技能 XP 奖励
+        const { data: skillData } = await supabase
+          .from('skills')
+          .select('xp_reward, skill_order')
+          .eq('id', lesson.skill_id)
+          .single();
+
+        if (skillData) {
+          await addXP(skillData.xp_reward);
+          
+          // 解锁下一个技能
+          await unlockNextSkill(skillData.skill_order);
+        }
+      }
+    } catch (err) {
+      console.error('[LessonPage] Error checking skill completion:', err);
+    }
+  };
+
+  const getScore = () => {
+    if (!lesson) return 0;
+    return Math.round((correctCount / lesson.content.questions.length) * 100);
+  };
+
+  const getStars = () => {
+    const score = getScore();
+    if (score >= 90) return 3;
+    if (score >= 70) return 2;
+    if (score >= lesson!.content.passThreshold * 100) return 1;
+    return 0;
+  };
+
+  const isPassed = () => {
+    if (!lesson) return false;
+    return getScore() >= lesson.content.passThreshold * 100;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-light-bg pattern-grid-lg">
+        <MotionDiv
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-light-bg pattern-grid-lg p-4">
+        <Card className="!p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl border-3 border-dark flex items-center justify-center">
+            <span className="text-3xl">❓</span>
+          </div>
+          <p className="text-slate-500 font-bold mb-4">课程未找到</p>
+          <Button className="w-full" onClick={() => navigate('/learn')}>
+            返回学习中心
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-light-bg pattern-grid-lg flex flex-col">
+      {/* Header - Neo-Brutalism Style */}
+      <header className="p-4 flex items-center justify-between bg-white border-b-3 border-dark shadow-neo-sm sticky top-0 z-30">
+        <MotionButton 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
+          onClick={() => navigate(-1)}
+        >
+          <X className="w-5 h-5 text-dark" />
+        </MotionButton>
+        
+        {/* Progress Bar */}
+        <div className="flex-1 mx-4 max-w-md">
+          <div className="h-4 bg-slate-200 rounded-full overflow-hidden border-2 border-dark">
+            <MotionDiv 
+              className="h-full bg-gradient-to-r from-secondary to-primary rounded-full"
+              initial={{ width: 0 }}
+              animate={{ 
+                width: `${((currentQuestionIndex + (showFeedback ? 1 : 0)) / lesson.content.questions.length) * 100}%` 
+              }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </div>
+        
+        <div className="px-3 py-1 bg-primary text-white font-black rounded-lg border-2 border-dark shadow-neo-sm">
+          {currentQuestionIndex + 1}/{lesson.content.questions.length}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-2xl mx-auto">
+        <AnimatePresence mode="wait">
+          {gameState === 'playing' && currentQuestion && (
+            <MotionDiv
+              key={currentQuestionIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full"
+            >
+              <Card className="!p-8 text-center relative overflow-hidden mb-6">
+                {/* Decorative elements */}
+                <div className="absolute -top-6 -right-6 w-24 h-24 bg-secondary/10 rounded-full border-3 border-dark/5" />
+                <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-accent/10 rounded-full border-3 border-dark/5" />
+                
+                <h2 className="text-2xl font-black text-dark mb-8 relative z-10">
+                  {currentQuestion.type === 'interval' ? '这是什么音程？' : '这是什么音？'}
+                </h2>
+                
+                {/* Play Button */}
+                <MotionButton
+                  className="w-32 h-32 rounded-full bg-primary flex items-center justify-center mx-auto mb-6 shadow-neo border-4 border-dark relative z-10"
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handlePlayNote}
+                >
+                  <Volume2 className="w-14 h-14 text-white" />
+                </MotionButton>
+                
+                <p className="text-slate-500 font-bold relative z-10">点击播放音符</p>
+              </Card>
+
+              {/* Options */}
+              <div className="grid grid-cols-2 gap-4">
+                {currentQuestion.type === 'interval' ? (
+                  // 音程类型：文字选项
+                  (currentQuestion.options as unknown as string[])?.map((option: string) => {
+                    const isSelected = selectedIntervalAnswer === option;
+                    const isCorrectAnswer = option === currentQuestion.answer;
+                    
+                    let bgColor = 'bg-white hover:bg-slate-50';
+                    let borderColor = 'border-dark';
+                    let textColor = 'text-dark';
+                    
+                    if (showFeedback) {
+                      if (isCorrectAnswer) {
+                        bgColor = 'bg-secondary';
+                        textColor = 'text-white';
+                      } else if (isSelected && !isCorrectAnswer) {
+                        bgColor = 'bg-red-500';
+                        borderColor = 'border-red-700';
+                        textColor = 'text-white';
+                      }
+                    }
+
+                    return (
+                      <MotionButton
+                        key={option}
+                        className={`
+                          p-6 rounded-2xl font-black text-xl border-3 transition-all shadow-neo-sm
+                          ${bgColor} ${borderColor} ${textColor}
+                          ${showFeedback ? 'cursor-default' : 'cursor-pointer'}
+                        `}
+                        whileHover={!showFeedback ? { scale: 1.02, y: -2, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' } : {}}
+                        whileTap={!showFeedback ? { scale: 0.98, y: 0, boxShadow: '0px 0px 0px 0px rgba(0,0,0,1)' } : {}}
+                        onClick={() => handleSelectIntervalAnswer(option)}
+                        disabled={showFeedback}
+                      >
+                        {option}
+                      </MotionButton>
+                    );
+                  })
+                ) : (
+                  // 单音识别类型：MIDI 选项
+                  currentQuestion.options?.map((midi) => {
+                    const isSelected = selectedAnswer === midi;
+                    const isCorrectAnswer = midi === currentQuestion.targetMidi;
+                    
+                    let bgColor = 'bg-white hover:bg-slate-50';
+                    let borderColor = 'border-dark';
+                    let textColor = 'text-dark';
+                    
+                    if (showFeedback) {
+                      if (isCorrectAnswer) {
+                        bgColor = 'bg-secondary';
+                        textColor = 'text-white';
+                      } else if (isSelected && !isCorrectAnswer) {
+                        bgColor = 'bg-red-500';
+                        borderColor = 'border-red-700';
+                        textColor = 'text-white';
+                      }
+                    }
+
+                    return (
+                      <MotionButton
+                        key={midi}
+                        className={`
+                          p-6 rounded-2xl font-black text-xl border-3 transition-all shadow-neo-sm
+                          ${bgColor} ${borderColor} ${textColor}
+                          ${showFeedback ? 'cursor-default' : 'cursor-pointer'}
+                        `}
+                        whileHover={!showFeedback ? { scale: 1.02, y: -2, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' } : {}}
+                        whileTap={!showFeedback ? { scale: 0.98, y: 0, boxShadow: '0px 0px 0px 0px rgba(0,0,0,1)' } : {}}
+                        onClick={() => handleSelectAnswer(midi)}
+                        disabled={showFeedback}
+                      >
+                        {getMidiNoteName(midi)}
+                      </MotionButton>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Feedback */}
+              <AnimatePresence>
+                {showFeedback && (
+                  <MotionDiv
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className={`mt-6 p-4 rounded-xl border-3 border-dark shadow-neo-sm ${isCorrect ? 'bg-secondary text-white' : 'bg-red-500 text-white'}`}
+                  >
+                    <p className="font-black text-lg">
+                      {isCorrect 
+                        ? '正确！🎉' 
+                        : currentQuestion.type === 'interval'
+                          ? `错误，正确答案是 ${currentQuestion.answer}`
+                          : `错误，正确答案是 ${getMidiNoteName(currentQuestion.targetMidi!)}`
+                      }
+                    </p>
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+            </MotionDiv>
+          )}
+
+          {gameState === 'result' && (
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-md text-center"
+            >
+              <Card className="!p-8 !bg-white text-dark border-3 border-dark shadow-neo relative overflow-hidden">
+                {/* Confetti decoration (simplified) */}
+                {isPassed() && (
+                  <>
+                    <div className="absolute top-10 left-10 w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="absolute top-20 right-10 w-3 h-3 bg-secondary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="absolute bottom-10 left-20 w-3 h-3 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                  </>
+                )}
+
+                {/* Stars */}
+                <div className="flex justify-center gap-3 mb-6">
+                  {[1, 2, 3].map((i) => (
+                    <MotionDiv
+                      key={i}
+                      initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      transition={{ delay: i * 0.2, type: 'spring' }}
+                    >
+                      <Star
+                        className={`w-14 h-14 ${i <= getStars() ? 'text-yellow-400 fill-yellow-400 drop-shadow-md' : 'text-slate-200'}`}
+                        strokeWidth={2.5}
+                      />
+                    </MotionDiv>
+                  ))}
+                </div>
+
+                <h2 className="text-3xl font-black mb-2 text-dark">
+                  {isPassed() ? '课程完成！' : '再接再厉！'}
+                </h2>
+                
+                <div className="my-6">
+                  <p className="text-6xl font-black text-primary drop-shadow-sm">{getScore()}</p>
+                  <p className="text-slate-500 font-bold mt-2">
+                    {correctCount} / {lesson.content.questions.length} 正确
+                  </p>
+                </div>
+
+                {isPassed() && user && (
+                  <MotionDiv 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-primary/10 rounded-xl p-4 mb-8 border-2 border-primary/20"
+                  >
+                    <p className="text-primary font-black text-xl">+{lesson.xp_reward} XP</p>
+                  </MotionDiv>
+                )}
+
+                {/* 未登录提示 */}
+                {!user && (
+                  <div className="bg-amber-100 rounded-xl p-4 mb-8 text-amber-800 border-2 border-amber-200">
+                    <p className="font-bold">💡 登录后可保存学习进度</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-4">
+                  {/* 下一关按钮 - 仅在通过且有下一关时显示 */}
+                  {isPassed() && nextLessonId && (
+                    <Button 
+                      className="w-full py-4 text-lg shadow-neo"
+                      onClick={() => navigate(`/lesson/${nextLessonId}`)}
+                    >
+                      下一关 <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  )}
+                  
+                  <div className="flex gap-4">
+                    <Button 
+                      variant="secondary" 
+                      className="flex-1 py-3"
+                      onClick={() => navigate(`/learn/skill/${lesson.skill_id}`)}
+                    >
+                      <List className="w-5 h-5 mr-2" />
+                      返回目录
+                    </Button>
+                    <Button 
+                      variant={isPassed() && nextLessonId ? "white" : "primary"}
+                      className="flex-1 py-3"
+                      onClick={() => {
+                        setCurrentQuestionIndex(0);
+                        setCorrectCount(0);
+                        setSelectedAnswer(null);
+                        setSelectedIntervalAnswer(null);
+                        setShowFeedback(false);
+                        setNextLessonId(null);
+                        setGameState('playing');
+                      }}
+                    >
+                      <RotateCcw className="w-5 h-5 mr-2" />
+                      {isPassed() ? '再练一次' : '重试'}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+};

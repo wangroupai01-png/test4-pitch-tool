@@ -78,6 +78,9 @@ interface ActiveNote {
 
 export const useAudioPlayer = () => {
   const currentNoteRef = useRef<ActiveNote | null>(null);
+  
+  // Always ready after initial module load (preloading is async but non-blocking)
+  const isReady = true;
 
   const stopCurrentNote = useCallback(() => {
     if (currentNoteRef.current) {
@@ -180,5 +183,5 @@ export const useAudioPlayer = () => {
     };
   }, [stopCurrentNote]);
 
-  return { playNote, stopCurrentNote };
+  return { playNote, stopCurrentNote, isReady };
 };

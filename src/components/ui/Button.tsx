@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 
 // Simplified loose typing to avoid build conflicts
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'white';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   [key: string]: any; // Allow any other prop (like motion props)
@@ -25,6 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
     secondary: "bg-secondary text-white hover:bg-secondary-hover shadow-neo",
     accent: "bg-accent text-white hover:bg-accent-hover shadow-neo",
     outline: "bg-white text-dark hover:bg-slate-50 shadow-neo",
+    white: "bg-white text-dark hover:bg-slate-50 shadow-neo",
     ghost: "border-transparent shadow-none hover:bg-black/5 active:translate-x-0 active:translate-y-0",
   };
 

@@ -22,6 +22,137 @@
 
 ## 关键开发节点
 
+### 2026-01-25: Phase 2 - 激励系统 (v2.1)
+
+#### 新增功能
+
+**1. 成就系统扩展**
+- 17种成就，按类型分组：学习成就、技能成就、打卡成就、等级成就、经验成就
+- 成就解锁时显示全局弹窗 `AchievementToast`
+- 成就页面 `/achievements`：展示所有成就和解锁进度
+- 自动检测成就解锁条件
+
+**相关文件**:
+- `src/components/game/AchievementToast.tsx` - 成就弹窗
+- `src/pages/Achievements.tsx` - 成就展示页
+- `src/utils/achievementChecker.ts` - 成就检测逻辑
+- `src/lib/add-achievements-data.sql` - 成就数据 SQL
+
+**2. 连续打卡追踪**
+- 完成课程时自动更新打卡记录
+- 计算连续天数和最长连续天数
+- 打卡记录存储在 `user_streaks` 表
+
+**3. 每日挑战完整实现**
+- 页面路由 `/daily-challenge`
+- 每日生成随机题目（根据星期几变化难度）
+- 完成后奖励 50 XP
+- 分数保存在 `daily_challenge_scores` 表
+
+**相关文件**:
+- `src/pages/DailyChallenge.tsx` - 每日挑战页
+- `src/lib/add-daily-challenge-table.sql` - 每日挑战数据表
+
+**4. 升级动效**
+- 升级时触发全屏动画 + 撒花特效
+- 使用 `canvas-confetti` 实现
+
+**相关文件**:
+- `src/components/game/LevelUpToast.tsx` - 升级动画
+
+**5. 音程课程支持**
+- 课程页面支持音程类型题目
+- 播放两个音符（基础音 + 音程音）
+- 选项为音程名称（如"大二度"、"纯五度"）
+
+**6. UI 优化**
+- 技能详情页添加「更多课程敬请期待」卡片
+- 修复已完成课程卡片透明度问题
+- 增加底部导航栏与内容区间距
+
+#### 数据库更新
+需要运行以下 SQL 脚本：
+- `src/lib/add-interval-lessons.sql` - 音程基础 5 节课程
+- `src/lib/add-achievements-data.sql` - 成就数据
+- `src/lib/add-daily-challenge-table.sql` - 每日挑战表
+
+---
+
+### 2026-01-23: Phase 1 - 学习系统重构 (v2.0 开发中)
+
+#### 新增功能
+
+**1. 底部 Tab 导航布局**
+- 四个主 Tab：学习、练习、竞技、我的
+- 入口 `/` 重定向到 `/learn`
+- 原有页面（FreeMode、QuizMode、SingMode）保持全屏模式
+
+**相关文件**:
+- `src/components/layout/TabLayout.tsx`
+- `src/App.tsx` (路由重构)
+
+**2. 技能树系统**
+- 按类别分组：基础篇、进阶篇、专业篇
+- 技能进度显示、前置技能解锁逻辑
+- 课程列表、星级评价
+
+**相关文件**:
+- `src/pages/Learn.tsx` - 学习中心
+- `src/pages/SkillDetail.tsx` - 技能详情页
+- `src/pages/LessonPage.tsx` - 课程学习页
+
+**3. 课程学习流程**
+- 播放目标音 → 选择答案 → 反馈 → 进入下一题
+- 完成后显示得分和星级
+- 自动解锁下一课程
+
+**4. XP 经验值系统**
+- 完成课程获得 XP
+- 完成技能获得额外 XP
+- 等级进度条显示在 Tab 导航上方
+- 等级配置表 (1-50级)
+
+**相关文件**:
+- `src/components/game/XPBar.tsx`
+- `src/lib/supabase-schema-v2.sql` (数据库扩展)
+
+**5. 竞技场页面**
+- 每日挑战入口 (按星期显示不同类型)
+- 排行榜入口
+- 联赛系统 / 好友PK (即将上线占位)
+
+**相关文件**:
+- `src/pages/Compete.tsx`
+
+**6. 个人中心页面**
+- 用户头像、等级、XP 显示
+- 统计数据：连续打卡、完成技能、完成课程、解锁成就
+- 退出登录
+
+**相关文件**:
+- `src/pages/Profile.tsx`
+
+**7. 数据库扩展 Schema**
+- `skills` - 技能定义
+- `lessons` - 课程内容 (JSONB 存储题目配置)
+- `user_skill_progress` - 用户技能进度
+- `user_lesson_progress` - 用户课程进度
+- `user_xp` - 用户经验值和等级
+- `xp_logs` - XP 获取记录
+- `level_config` - 等级配置
+- `user_streaks` - 打卡记录
+- `achievements` - 成就定义
+- `user_achievements` - 用户成就
+
+**相关文件**:
+- `src/lib/supabase-schema-v2.sql`
+
+#### 注意事项
+- 需要在 Supabase 中运行 `supabase-schema-v2.sql` 才能使用新功能
+- 此分支为开发分支 `dev-major-update`，尚未合并到 master
+
+---
+
 ### 2026-01-23: 音高检测升级 + 分数保存修复 + 昵称编辑功能
 
 #### 有效改动
@@ -202,37 +333,49 @@ const SAMPLE_BASE_URL = 'https://cdn.jsdelivr.net/gh/surikov/webaudio-tinysynth@
 src/
 ├── components/
 │   ├── auth/
-│   │   ├── AuthModal.tsx       # 登录/注册弹窗
-│   │   └── UserButton.tsx      # 用户按钮
+│   │   ├── AuthModal.tsx          # 登录/注册弹窗
+│   │   ├── UserButton.tsx         # 用户按钮
+│   │   ├── UserStatsModal.tsx     # 用户成绩弹窗
+│   │   └── UserSettingsModal.tsx  # 用户设置弹窗
 │   ├── game/
-│   │   ├── Leaderboard.tsx     # 排行榜弹窗
-│   │   ├── PianoKeyboard.tsx   # 钢琴键盘组件
-│   │   └── PitchVisualizer.tsx # 音高可视化器
+│   │   ├── Leaderboard.tsx        # 排行榜弹窗
+│   │   ├── PianoKeyboard.tsx      # 钢琴键盘组件
+│   │   ├── PitchVisualizer.tsx    # 音高可视化器
+│   │   └── XPBar.tsx              # XP 进度条 (v2.0)
+│   ├── layout/
+│   │   └── TabLayout.tsx          # Tab 导航布局 (v2.0)
 │   └── ui/
-│       ├── Button.tsx          # 通用按钮
-│       ├── Card.tsx            # 通用卡片
-│       └── ShareButton.tsx     # 分享按钮
+│       ├── Button.tsx             # 通用按钮
+│       ├── Card.tsx               # 通用卡片
+│       └── ShareButton.tsx        # 分享按钮
 ├── hooks/
-│   ├── useAudioPlayer.ts       # 音频播放 (钢琴采样)
-│   ├── usePitchDetector.ts     # 音高检测
-│   └── useAudioContext.ts      # AudioContext 管理
+│   ├── useAudioPlayer.ts          # 音频播放 (钢琴采样)
+│   ├── usePitchDetector.ts        # 音高检测
+│   └── useAudioContext.ts         # AudioContext 管理
 ├── lib/
-│   ├── supabase.ts             # Supabase 客户端
-│   └── supabase-schema.sql     # 数据库 Schema
+│   ├── supabase.ts                # Supabase 客户端
+│   ├── supabase-schema.sql        # 数据库 Schema (v1.0)
+│   └── supabase-schema-v2.sql     # 数据库扩展 Schema (v2.0)
 ├── pages/
-│   ├── Home.tsx                # 首页
-│   ├── FreeMode.tsx            # 自由练习
-│   ├── QuizMode.tsx            # 听音辨位
-│   └── SingMode.tsx            # 哼唱闯关
+│   ├── Home.tsx                   # 首页 (旧版)
+│   ├── FreeMode.tsx               # 自由练习
+│   ├── QuizMode.tsx               # 听音辨位
+│   ├── SingMode.tsx               # 哼唱闯关
+│   ├── Learn.tsx                  # 学习中心 (v2.0)
+│   ├── Practice.tsx               # 练习场 (v2.0)
+│   ├── Compete.tsx                # 竞技场 (v2.0)
+│   ├── Profile.tsx                # 个人中心 (v2.0)
+│   ├── SkillDetail.tsx            # 技能详情 (v2.0)
+│   └── LessonPage.tsx             # 课程学习页 (v2.0)
 ├── store/
-│   ├── useGameStore.ts         # 游戏状态管理
-│   └── useUserStore.ts         # 用户状态管理
+│   ├── useGameStore.ts            # 游戏状态管理
+│   └── useUserStore.ts            # 用户状态管理
 ├── utils/
-│   ├── musicTheory.ts          # 音乐理论工具函数
-│   └── pitchDetection.ts       # 音高检测算法
-├── App.tsx                     # 路由配置
-├── main.tsx                    # 入口文件
-└── index.css                   # 全局样式
+│   ├── musicTheory.ts             # 音乐理论工具函数
+│   └── pitchDetection.ts          # 音高检测算法
+├── App.tsx                        # 路由配置
+├── main.tsx                       # 入口文件
+└── index.css                      # 全局样式
 ```
 
 ---
@@ -288,4 +431,4 @@ colors: {
 
 ---
 
-*最后更新: 2026-01-23*
+*最后更新: 2026-01-23 (Phase 1 完成)*
