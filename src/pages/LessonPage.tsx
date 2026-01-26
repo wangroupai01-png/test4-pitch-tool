@@ -13,6 +13,7 @@ import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
 import { showLevelUpToast } from '../components/game/LevelUpToast';
 import { updateReviewSchedule } from '../utils/reviewService';
+import { clearLearnCache } from './Learn';
 
 interface Lesson {
   id: string;
@@ -426,6 +427,8 @@ export const LessonPage = () => {
         console.error('[LessonPage] Error saving progress:', upsertError);
       } else {
         console.log('[LessonPage] Progress saved successfully');
+        // 清除学习页面缓存，确保返回时显示最新数据
+        clearLearnCache();
       }
 
       // 如果通过，添加 XP
@@ -576,79 +579,72 @@ export const LessonPage = () => {
     }
   };
 
-  // 解锁下一个技能及其第一课
-  const unlockNextSkill = async (currentSkillOrder: number) => {
+  // 解锁所有以当前技能为前置条件的技能
+  const unlockNextSkill = async (completedSkillId: string) => {
     if (!user) return;
 
     try {
-      // 查找下一个技能
-      const { data: nextSkill, error: skillError } = await supabase
+      // 查找所有以当前技能为前置条件的技能
+      const { data: dependentSkills, error: skillError } = await supabase
         .from('skills')
         .select('id')
-        .gt('skill_order', currentSkillOrder)
-        .order('skill_order')
-        .limit(1)
-        .maybeSingle();
+        .eq('prerequisite_skill_id', completedSkillId);
 
-      console.log('[LessonPage] Next skill query:', { nextSkill, skillError });
+      console.log('[LessonPage] Dependent skills:', { completedSkillId, dependentSkills, skillError });
 
-      if (!nextSkill) {
-        console.log('[LessonPage] No more skills to unlock');
+      if (!dependentSkills || dependentSkills.length === 0) {
+        console.log('[LessonPage] No dependent skills to unlock');
         return;
       }
 
-      // 解锁该技能
-      const { error: skillProgressError } = await supabase
-        .from('user_skill_progress')
-        .upsert({
-          user_id: user.id,
-          skill_id: nextSkill.id,
-          status: 'unlocked',
-        }, { onConflict: 'user_id,skill_id' });
+      // 解锁所有依赖的技能
+      for (const skill of dependentSkills) {
+        // 解锁技能
+        const { error: skillProgressError } = await supabase
+          .from('user_skill_progress')
+          .upsert({
+            user_id: user.id,
+            skill_id: skill.id,
+            status: 'unlocked',
+          }, { onConflict: 'user_id,skill_id' });
 
-      if (skillProgressError) {
-        console.error('[LessonPage] Error unlocking next skill:', skillProgressError);
-      } else {
-        console.log('[LessonPage] Next skill unlocked:', nextSkill.id);
-      }
+        if (skillProgressError) {
+          console.error('[LessonPage] Error unlocking skill:', skill.id, skillProgressError);
+        } else {
+          console.log('[LessonPage] Skill unlocked:', skill.id);
+        }
 
-      // 解锁该技能的第一课
-      const { data: firstLesson, error: lessonError } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('skill_id', nextSkill.id)
-        .order('lesson_order')
-        .limit(1)
-        .maybeSingle();
-
-      console.log('[LessonPage] First lesson of next skill:', { firstLesson, lessonError });
-
-      if (firstLesson) {
-        // 检查是否已有进度
-        const { data: existing } = await supabase
-          .from('user_lesson_progress')
+        // 解锁该技能的第一课
+        const { data: firstLesson } = await supabase
+          .from('lessons')
           .select('id')
-          .eq('user_id', user.id)
-          .eq('lesson_id', firstLesson.id)
+          .eq('skill_id', skill.id)
+          .order('lesson_order')
+          .limit(1)
           .maybeSingle();
 
-        if (!existing) {
-          const { error } = await supabase
+        if (firstLesson) {
+          const { data: existing } = await supabase
             .from('user_lesson_progress')
-            .insert({
-              user_id: user.id,
-              lesson_id: firstLesson.id,
-              status: 'unlocked',
-            });
-          if (error) {
-            console.error('[LessonPage] Error unlocking first lesson of next skill:', error);
-          } else {
-            console.log('[LessonPage] First lesson of next skill unlocked:', firstLesson.id);
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('lesson_id', firstLesson.id)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase
+              .from('user_lesson_progress')
+              .insert({
+                user_id: user.id,
+                lesson_id: firstLesson.id,
+                status: 'unlocked',
+              });
+            console.log('[LessonPage] First lesson unlocked:', firstLesson.id);
           }
         }
       }
     } catch (err) {
-      console.error('[LessonPage] Error unlocking next skill:', err);
+      console.error('[LessonPage] Error unlocking dependent skills:', err);
     }
   };
 
@@ -697,8 +693,8 @@ export const LessonPage = () => {
         if (skillData) {
           await addXP(skillData.xp_reward);
           
-          // 解锁下一个技能
-          await unlockNextSkill(skillData.skill_order);
+          // 解锁所有以此技能为前置的技能
+          await unlockNextSkill(lesson.skill_id);
         }
       }
     } catch (err) {

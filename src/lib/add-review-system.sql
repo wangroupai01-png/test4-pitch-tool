@@ -61,6 +61,10 @@ CREATE INDEX IF NOT EXISTS idx_question_stats_user_type
 ALTER TABLE user_review_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_question_stats ENABLE ROW LEVEL SECURITY;
 
+-- 删除已存在的策略（如果有）
+DROP POLICY IF EXISTS "Users can manage own review schedule" ON user_review_schedule;
+DROP POLICY IF EXISTS "Users can manage own question stats" ON user_question_stats;
+
 -- 用户只能访问自己的数据
 CREATE POLICY "Users can manage own review schedule" ON user_review_schedule
   FOR ALL USING (auth.uid() = user_id);

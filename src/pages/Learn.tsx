@@ -34,7 +34,12 @@ interface CacheData {
 
 // 全局缓存（组件外部，页面切换时保留）
 let globalCache: CacheData | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+const CACHE_DURATION = 30 * 1000; // 30秒缓存（加快数据更新）
+
+// 清除缓存的函数（供其他组件调用）
+export const clearLearnCache = () => {
+  globalCache = null;
+};
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -212,9 +217,16 @@ export const Learn = () => {
       return 'unlocked'; // 没有前置，默认解锁
     }
     
+    // 检查前置技能状态
     const prereqProgress = skillProgress.get(skill.prerequisite_skill_id);
     if (prereqProgress?.status === 'completed') {
       return 'unlocked';
+    }
+    
+    // 额外检查：前置技能的课程是否全部完成
+    const prereqCounts = lessonCounts.get(skill.prerequisite_skill_id);
+    if (prereqCounts && prereqCounts.total > 0 && prereqCounts.completed >= prereqCounts.total) {
+      return 'unlocked'; // 前置技能课程全部完成
     }
     
     return 'locked';
@@ -295,8 +307,8 @@ export const Learn = () => {
         </div>
       </MotionDiv>
 
-      {/* 复习入口卡片 */}
-      {user && reviewCount > 0 && (
+      {/* 复习入口卡片 - 始终显示 */}
+      {user && (
         <MotionDiv
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -305,16 +317,26 @@ export const Learn = () => {
           className="mb-6"
         >
           <Card 
-            className="!p-5 !bg-gradient-to-r !from-primary !to-purple-600 !border-primary cursor-pointer"
+            className={`!p-5 cursor-pointer ${
+              reviewCount > 0 
+                ? '!bg-gradient-to-r !from-primary !to-purple-600 !border-primary' 
+                : '!bg-slate-50 !border-slate-300'
+            }`}
             onClick={() => navigate('/review')}
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center border-2 border-white/30">
-                <Brain className="w-7 h-7 text-white" />
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center border-2 ${
+                reviewCount > 0 
+                  ? 'bg-white/20 border-white/30' 
+                  : 'bg-white border-dark'
+              }`}>
+                <Brain className={`w-7 h-7 ${reviewCount > 0 ? 'text-white' : 'text-primary'}`} />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-black text-lg text-white">今日复习</h3>
+                  <h3 className={`font-black text-lg ${reviewCount > 0 ? 'text-white' : 'text-dark'}`}>
+                    复习中心
+                  </h3>
                   {reviewCount > 0 && (
                     <span className="px-2 py-0.5 bg-white/20 rounded-full text-sm font-black text-white flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
@@ -322,9 +344,11 @@ export const Learn = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-white/80 font-medium text-sm">科学复习，高效记忆</p>
+                <p className={`font-medium text-sm ${reviewCount > 0 ? 'text-white/80' : 'text-slate-500'}`}>
+                  {reviewCount > 0 ? '科学复习，高效记忆' : '暂无待复习内容'}
+                </p>
               </div>
-              <ChevronRight className="w-6 h-6 text-white/80" />
+              <ChevronRight className={`w-6 h-6 ${reviewCount > 0 ? 'text-white/80' : 'text-slate-400'}`} />
             </div>
           </Card>
         </MotionDiv>
