@@ -1,14 +1,61 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, TrendingUp, TrendingDown, RotateCcw, Music } from 'lucide-react';
 import { usePitchDetector } from '../hooks/usePitchDetector';
 import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { clsx } from 'clsx';
+import { getNoteName } from '../utils/musicTheory';
 
 export const FreeMode = () => {
   const navigate = useNavigate();
   const { startListening, stopListening, isListening, pitch } = usePitchDetector();
+  
+  // 音域测试状态
+  const [lowestMidi, setLowestMidi] = useState<number | null>(null);
+  const [highestMidi, setHighestMidi] = useState<number | null>(null);
+  const [isRangeTesting, setIsRangeTesting] = useState(false);
+  
+  // 更新音域
+  useEffect(() => {
+    if (isRangeTesting && pitch && pitch.clarity > 0.85) {
+      const currentMidi = pitch.midi;
+      if (lowestMidi === null || currentMidi < lowestMidi) {
+        setLowestMidi(currentMidi);
+      }
+      if (highestMidi === null || currentMidi > highestMidi) {
+        setHighestMidi(currentMidi);
+      }
+    }
+  }, [pitch, isRangeTesting, lowestMidi, highestMidi]);
+  
+  // 开始音域测试
+  const startRangeTest = () => {
+    setLowestMidi(null);
+    setHighestMidi(null);
+    setIsRangeTesting(true);
+    if (!isListening) {
+      startListening();
+    }
+  };
+  
+  // 重置音域
+  const resetRange = () => {
+    setLowestMidi(null);
+    setHighestMidi(null);
+  };
+  
+  // 计算音域跨度
+  const getRangeSpan = () => {
+    if (lowestMidi === null || highestMidi === null) return null;
+    const semitones = highestMidi - lowestMidi;
+    const octaves = Math.floor(semitones / 12);
+    const remaining = semitones % 12;
+    if (octaves === 0) return `${remaining}个半音`;
+    if (remaining === 0) return `${octaves}个八度`;
+    return `${octaves}个八度${remaining}个半音`;
+  };
 
   const toggleListening = () => {
     if (isListening) {
@@ -32,7 +79,7 @@ export const FreeMode = () => {
       {/* Header */}
       <header className="mb-4 md:mb-8 flex items-center justify-between gap-2">
         <Button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/practice')}
           variant="ghost"
           size="sm"
           className="shrink-0"
@@ -50,54 +97,117 @@ export const FreeMode = () => {
       <main className="flex-1 flex flex-col max-w-6xl mx-auto w-full gap-4 md:gap-8">
         
         {/* Top Info Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-          <Card className="col-span-1 md:col-span-2 flex flex-row items-center justify-between !p-4 md:!p-8 gap-3">
-            <div className="flex items-center gap-3 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {/* 麦克风状态 */}
+          <Card className="col-span-2 md:col-span-1 flex flex-row items-center justify-between !p-3 md:!p-4 gap-3">
+            <div className="flex items-center gap-3">
               <div className={clsx(
-                "w-12 h-12 md:w-16 md:h-16 rounded-full border-3 border-dark flex items-center justify-center transition-all shadow-neo-sm shrink-0",
+                "w-10 h-10 md:w-12 md:h-12 rounded-full border-3 border-dark flex items-center justify-center transition-all shadow-neo-sm shrink-0",
                 isListening ? "bg-red-500 text-white animate-pulse" : "bg-slate-200 text-slate-500"
               )}>
-                {isListening ? <Mic className="w-6 h-6 md:w-8 md:h-8" /> : <MicOff className="w-6 h-6 md:w-8 md:h-8" />}
+                {isListening ? <Mic className="w-5 h-5 md:w-6 md:h-6" /> : <MicOff className="w-5 h-5 md:w-6 md:h-6" />}
               </div>
               <div className="min-w-0">
-                <div className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-500 mb-1">状态</div>
-                <div className="font-black text-lg md:text-2xl truncate">
-                  {isListening ? '监听中...' : '已停止'}
+                <div className="text-xs font-black uppercase tracking-wider text-slate-500">状态</div>
+                <div className="font-black text-sm md:text-base truncate">
+                  {isListening ? '监听中' : '已停止'}
                 </div>
               </div>
             </div>
             <Button 
               onClick={toggleListening}
               variant={isListening ? "secondary" : "primary"}
-              size="lg"
-              className="min-w-[80px] md:min-w-[160px] text-sm md:text-base shrink-0"
+              size="sm"
+              className="shrink-0"
             >
               {isListening ? '停止' : '开始'}
             </Button>
           </Card>
 
+          {/* 当前音高 */}
           <Card 
             variant="dark"
-            className="flex flex-col items-center justify-center !p-4 md:!p-6 border-3 border-dark relative overflow-hidden"
+            className="flex flex-col items-center justify-center !p-3 md:!p-4 border-3 border-dark relative overflow-hidden"
           >
-            {/* Background grid effect */}
-            <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-            
-            <div className="text-xs md:text-sm font-bold text-slate-400 mb-1 md:mb-2 uppercase tracking-widest relative z-10">当前音高</div>
+            <div className="text-xs font-bold text-slate-400 mb-1 uppercase tracking-widest relative z-10">当前音高</div>
             {pitch ? (
               <div className="text-center relative z-10">
-                <div className="text-5xl md:text-7xl font-black font-mono tracking-tighter mb-1 md:mb-2 text-white">
+                <div className="text-2xl md:text-4xl font-black font-mono tracking-tighter text-white">
                   {pitch.note}{pitch.octave}
                 </div>
                 <div className={clsx(
-                  "text-xs font-black px-2 md:px-3 py-1 border-2 border-white/20 rounded-full inline-block",
+                  "text-xs font-black px-2 py-0.5 border-2 border-white/20 rounded-full inline-block",
                   status?.color
                 )}>
-                  {status?.text} ({pitch.cents > 0 ? '+' : ''}{pitch.cents})
+                  {status?.text}
                 </div>
               </div>
             ) : (
-                <div className="text-4xl md:text-6xl font-black text-slate-500 relative z-10">--</div>
+                <div className="text-2xl md:text-4xl font-black text-slate-500 relative z-10">--</div>
+            )}
+          </Card>
+          
+          {/* 音域测试 */}
+          <Card className="col-span-2 flex flex-col !p-3 md:!p-4 border-3 border-dark bg-gradient-to-br from-purple-50 to-pink-50">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Music className="w-4 h-4 text-primary" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">音域测试</span>
+              </div>
+              <div className="flex gap-1">
+                {!isRangeTesting ? (
+                  <Button size="sm" variant="primary" onClick={startRangeTest} className="text-xs !px-2 !py-1">
+                    开始测试
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={resetRange} className="text-xs !px-2 !py-1">
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setIsRangeTesting(false)} className="text-xs !px-2 !py-1">
+                      完成
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between gap-2">
+              {/* 最低音 */}
+              <div className="flex-1 bg-white rounded-lg border-2 border-dark p-2 text-center">
+                <div className="flex items-center justify-center gap-1 text-blue-500 mb-1">
+                  <TrendingDown className="w-3 h-3" />
+                  <span className="text-xs font-bold">最低</span>
+                </div>
+                <div className="text-lg md:text-xl font-black">
+                  {lowestMidi ? `${getNoteName(lowestMidi).note}${getNoteName(lowestMidi).octave}` : '--'}
+                </div>
+              </div>
+              
+              {/* 音域跨度 */}
+              <div className="flex-1 text-center">
+                <div className="text-xs font-bold text-slate-500 mb-1">跨度</div>
+                <div className="text-sm md:text-base font-black text-primary">
+                  {getRangeSpan() || '--'}
+                </div>
+              </div>
+              
+              {/* 最高音 */}
+              <div className="flex-1 bg-white rounded-lg border-2 border-dark p-2 text-center">
+                <div className="flex items-center justify-center gap-1 text-red-500 mb-1">
+                  <TrendingUp className="w-3 h-3" />
+                  <span className="text-xs font-bold">最高</span>
+                </div>
+                <div className="text-lg md:text-xl font-black">
+                  {highestMidi ? `${getNoteName(highestMidi).note}${getNoteName(highestMidi).octave}` : '--'}
+                </div>
+              </div>
+            </div>
+            
+            {isRangeTesting && (
+              <p className="text-xs text-center text-slate-500 mt-2 animate-pulse">
+                🎤 请从低到高唱出你能发出的所有音...
+              </p>
             )}
           </Card>
         </div>

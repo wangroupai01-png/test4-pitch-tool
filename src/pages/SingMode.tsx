@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { usePitchDetector } from '../hooks/usePitchDetector';
 import { getRandomNote, getNoteName, getFrequency } from '../utils/musicTheory';
-import { ArrowLeft, Mic, Trophy, Play, Check, Volume2, Music } from 'lucide-react';
+import { ArrowLeft, Mic, Trophy, Play, Check, Volume2, Music, Heart, Zap, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -15,7 +15,20 @@ import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
 
-type GameState = 'intro' | 'playing' | 'success';
+type GameState = 'intro' | 'playing' | 'success' | 'failed' | 'gameover';
+
+// 难度配置：随关卡递增
+const getDifficultyConfig = (level: number) => {
+  // 容差随关卡降低 (从0.8半音到0.3半音)
+  const tolerance = Math.max(0.3, 0.8 - (level - 1) * 0.05);
+  // 保持时间随关卡增加 (从1.5秒到3秒)
+  const holdDuration = Math.min(3000, 1500 + (level - 1) * 100);
+  // 音域随关卡扩展
+  const minMidi = Math.max(48, 53 - Math.floor(level / 5) * 2);
+  const maxMidi = Math.min(84, 72 + Math.floor(level / 5) * 2);
+  
+  return { tolerance, holdDuration, minMidi, maxMidi };
+};
 
 export const SingMode = () => {
   const [gameState, setGameState] = useState<GameState>('intro');
@@ -25,17 +38,23 @@ export const SingMode = () => {
   const [progress, setProgress] = useState(0); // 0 to 100
   const [bestLevel, setBestLevel] = useState(0);
   const [bestScore, setBestScore] = useState(0);
+  const [lives, setLives] = useState(3); // 生命值
+  const [failTimer, setFailTimer] = useState<number | null>(null); // 失败倒计时
   
   const { startListening, stopListening, isListening, pitch } = usePitchDetector();
   const { playNote } = useAudioPlayer();
   const { user, isGuest, updateGuestScore, guestData } = useUserStore();
 
-  // Difficulty range
-  const MIN_MIDI = 53; // F3
-  const MAX_MIDI = 72; // C5
+  // 根据当前关卡获取难度配置
+  const diffConfig = getDifficultyConfig(level);
+  const MIN_MIDI = diffConfig.minMidi;
+  const MAX_MIDI = diffConfig.maxMidi;
+  const HOLD_DURATION_MS = diffConfig.holdDuration;
+  const TOLERANCE = diffConfig.tolerance;
 
-  const HOLD_DURATION_MS = 1500; // Need to hold note for 1.5s
   const lastTimeRef = useRef<number>(0);
+  const failTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const FAIL_TIME_LIMIT = 15; // 15秒内未完成算失败
 
   // Load best score on mount
   useEffect(() => {
@@ -165,22 +184,71 @@ export const SingMode = () => {
     }
   };
 
+  // 清除失败计时器
+  const clearFailTimer = () => {
+    if (failTimerRef.current) {
+      clearInterval(failTimerRef.current);
+      failTimerRef.current = null;
+    }
+    setFailTimer(null);
+  };
+
   const nextLevel = () => {
+    clearFailTimer();
     const note = getRandomNote(MIN_MIDI, MAX_MIDI);
     setTargetMidi(note);
     setGameState('playing');
     setProgress(0);
+    
+    // 启动失败倒计时
+    setFailTimer(FAIL_TIME_LIMIT);
+    failTimerRef.current = setInterval(() => {
+      setFailTimer(prev => {
+        if (prev === null || prev <= 1) {
+          clearFailTimer();
+          handleFail();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
     // Play the target note so they know what it sounds like
     setTimeout(() => {
         playNote(getFrequency(note), 1.5, 'sine');
     }, 500);
   };
 
+  // 失败处理
+  const handleFail = () => {
+    clearFailTimer();
+    const newLives = lives - 1;
+    setLives(newLives);
+    
+    if (newLives <= 0) {
+      // 游戏结束
+      setGameState('gameover');
+      stopListening();
+      saveScore(score, level - 1);
+    } else {
+      // 还有生命，显示失败提示后继续
+      setGameState('failed');
+      setTimeout(() => {
+        nextLevel();
+      }, 1500);
+    }
+  };
+
   const startGame = () => {
     startListening();
     setScore(0);
     setLevel(1);
+    setLives(3);
     nextLevel();
+  };
+  
+  const restartGame = () => {
+    setGameState('intro');
   };
 
   // Game Loop for checking pitch match
@@ -191,12 +259,11 @@ export const SingMode = () => {
     const dt = now - lastTimeRef.current;
     lastTimeRef.current = now;
 
-    // Check if pitch matches target
-    // Tolerance: 50 cents (half a semitone)
+    // Check if pitch matches target (tolerance decreases with level)
     const currentMidi = pitch.midi + pitch.cents / 100;
     const diff = Math.abs(currentMidi - targetMidi);
 
-    if (diff < 0.5 && pitch.clarity > 0.8) {
+    if (diff < TOLERANCE && pitch.clarity > 0.8) {
       // Good pitch! Increase progress
       const increment = (100 / HOLD_DURATION_MS) * (dt || 16);
       setProgress(prev => {
@@ -211,11 +278,12 @@ export const SingMode = () => {
       // Decay progress if miss
       setProgress(prev => Math.max(0, prev - 1));
     }
-  }, [pitch, targetMidi, gameState, isListening]);
+  }, [pitch, targetMidi, gameState, isListening, TOLERANCE, HOLD_DURATION_MS]);
 
   const handleSuccess = () => {
+    clearFailTimer();
     setGameState('success');
-    const newScore = score + 100;
+    const newScore = score + 100 + (level * 10); // 关卡越高奖励越多
     const newLevel = level + 1;
     setScore(newScore);
     
@@ -244,6 +312,7 @@ export const SingMode = () => {
   useEffect(() => {
     return () => {
       stopListening();
+      clearFailTimer();
     };
   }, []);
 
@@ -251,13 +320,32 @@ export const SingMode = () => {
     <div className="min-h-screen bg-light-bg text-dark p-3 md:p-6 flex flex-col font-sans overflow-hidden">
       {/* Header */}
       <header className="flex justify-between items-center mb-2 md:mb-4 max-w-6xl mx-auto w-full z-10 relative gap-2">
-        <Link to="/">
-          <Button variant="ghost" size="sm" onClick={stopListening} className="shrink-0">
+        <Link to="/practice">
+          <Button variant="ghost" size="sm" onClick={() => { stopListening(); clearFailTimer(); }} className="shrink-0">
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
             <span className="hidden sm:inline">返回</span>
           </Button>
         </Link>
         <div className="flex gap-2 md:gap-4 items-center">
+            {/* 生命值 */}
+            {gameState !== 'intro' && gameState !== 'gameover' && (
+              <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 bg-white">
+                {[...Array(3)].map((_, i) => (
+                  <Heart 
+                    key={i} 
+                    className={`w-4 h-4 md:w-5 md:h-5 ${i < lives ? 'text-red-500 fill-red-500' : 'text-slate-300'}`} 
+                  />
+                ))}
+              </Card>
+            )}
+            {/* 倒计时 */}
+            {failTimer !== null && failTimer <= 10 && (
+              <Card className={`!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 ${
+                failTimer <= 5 ? 'bg-red-500 text-white animate-pulse' : 'bg-white'
+              }`}>
+                <span className="font-bold text-sm">{failTimer}s</span>
+              </Card>
+            )}
             {score > 0 && (
               <ShareButton score={score} mode="哼唱闯关" />
             )}
@@ -304,6 +392,51 @@ export const SingMode = () => {
                         <Button size="lg" onClick={startGame} className="text-lg md:text-2xl px-8 md:px-12 py-4 md:py-6 shadow-neo-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
                             开始挑战 <Play className="w-6 h-6 md:w-8 md:h-8 ml-2 md:ml-3 fill-current" />
                         </Button>
+                        <p className="mt-4 text-sm text-slate-500">
+                          ❤️ 3条命 · 难度递进 · 挑战你的极限
+                        </p>
+                    </div>
+                </MotionDiv>
+            )}
+            {gameState === 'gameover' && (
+                <MotionDiv 
+                    key="gameover"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center z-50 bg-dark/90 backdrop-blur-sm"
+                >
+                    <div className="text-center max-w-md px-4">
+                        <div className="bg-white border-3 border-dark rounded-2xl shadow-neo p-6 mb-6">
+                          <h2 className="text-3xl font-black mb-2 text-dark">💀 游戏结束</h2>
+                          <div className="grid grid-cols-2 gap-4 my-6">
+                            <div className="bg-primary/10 rounded-xl p-4 border-2 border-primary">
+                              <p className="text-3xl font-black text-primary">{score}</p>
+                              <p className="text-sm font-bold text-slate-500">总得分</p>
+                            </div>
+                            <div className="bg-secondary/10 rounded-xl p-4 border-2 border-secondary">
+                              <p className="text-3xl font-black text-secondary">Lv.{level - 1}</p>
+                              <p className="text-sm font-bold text-slate-500">最高关卡</p>
+                            </div>
+                          </div>
+                          {level - 1 > bestLevel && (
+                            <div className="bg-accent/20 rounded-xl p-3 mb-4 border-2 border-accent">
+                              <p className="font-black text-accent">🏆 新纪录！</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-3">
+                          <Link to="/practice" className="flex-1">
+                            <Button variant="outline" className="w-full py-4">
+                              <ArrowLeft className="w-5 h-5 mr-2" />
+                              返回
+                            </Button>
+                          </Link>
+                          <Button onClick={restartGame} className="flex-1 py-4">
+                            <RotateCcw className="w-5 h-5 mr-2" />
+                            再来一局
+                          </Button>
+                        </div>
                     </div>
                 </MotionDiv>
             )}
@@ -371,6 +504,22 @@ export const SingMode = () => {
                                     <div className="text-white text-center">
                                         <Check className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-2" />
                                         <h2 className="text-2xl md:text-4xl font-black">完美通过!</h2>
+                                        <p className="text-lg opacity-80">+{100 + level * 10} 分</p>
+                                    </div>
+                                </MotionDiv>
+                            )}
+                            {gameState === 'failed' && (
+                                <MotionDiv 
+                                    key="failed"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-red-500 flex items-center justify-center z-20"
+                                >
+                                    <div className="text-white text-center">
+                                        <Heart className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-2" />
+                                        <h2 className="text-2xl md:text-4xl font-black">时间到!</h2>
+                                        <p className="text-lg opacity-80">剩余 {lives} 条命</p>
                                     </div>
                                 </MotionDiv>
                             )}
