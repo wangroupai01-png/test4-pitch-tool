@@ -259,7 +259,7 @@ export const Review = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className={`!p-4 text-center ${stats.overdueCount > 0 ? '!border-red-500 !bg-red-50' : ''}`}>
+            <Card className={`!p-4 text-center !bg-white ${stats.overdueCount > 0 ? '!border-red-500' : ''}`}>
               <div className={`w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center border-2 border-dark ${stats.overdueCount > 0 ? 'bg-red-500' : 'bg-slate-200'}`}>
                 <AlertCircle className={`w-6 h-6 ${stats.overdueCount > 0 ? 'text-white' : 'text-slate-400'}`} />
               </div>
@@ -275,7 +275,7 @@ export const Review = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
           >
-            <Card className={`!p-4 text-center ${stats.todayCount > 0 ? '!border-primary !bg-primary/5' : ''}`}>
+            <Card className={`!p-4 text-center !bg-white ${stats.todayCount > 0 ? '!border-primary' : ''}`}>
               <div className={`w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center border-2 border-dark ${stats.todayCount > 0 ? 'bg-primary' : 'bg-slate-200'}`}>
                 <Clock className={`w-6 h-6 ${stats.todayCount > 0 ? 'text-white' : 'text-slate-400'}`} />
               </div>
@@ -291,7 +291,7 @@ export const Review = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className="!p-4 text-center">
+            <Card className="!p-4 text-center !bg-white">
               <div className="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center border-2 border-dark bg-secondary">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
@@ -305,7 +305,7 @@ export const Review = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="!p-4 text-center">
+            <Card className="!p-4 text-center !bg-white">
               <div className="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center border-2 border-dark bg-amber-400">
                 <Calendar className="w-6 h-6 text-white" />
               </div>
