@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles, RefreshCw } from 'lucide-react';
+import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles, RefreshCw, Brain, AlertCircle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
+import { getTodayReviewCount } from '../utils/reviewService';
 
 interface Skill {
   id: string;
@@ -39,13 +40,26 @@ const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
 
 export const Learn = () => {
+  const navigate = useNavigate();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [skillProgress, setSkillProgress] = useState<Map<string, SkillProgress>>(new Map());
   const [lessonCounts, setLessonCounts] = useState<Map<string, { total: number; completed: number }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
   const { user } = useUserStore();
   const initialLoadDone = useRef(false);
+
+  // 加载待复习数量
+  useEffect(() => {
+    const loadReviewCount = async () => {
+      if (user) {
+        const count = await getTodayReviewCount(user.id);
+        setReviewCount(count);
+      }
+    };
+    loadReviewCount();
+  }, [user]);
 
   useEffect(() => {
     loadSkillTree();
@@ -280,6 +294,41 @@ export const Learn = () => {
           </div>
         </div>
       </MotionDiv>
+
+      {/* 复习入口卡片 */}
+      {user && reviewCount > 0 && (
+        <MotionDiv
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="mb-6"
+        >
+          <Card 
+            className="!p-5 !bg-gradient-to-r !from-primary !to-purple-600 !border-primary cursor-pointer"
+            onClick={() => navigate('/review')}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center border-2 border-white/30">
+                <Brain className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-lg text-white">今日复习</h3>
+                  {reviewCount > 0 && (
+                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-sm font-black text-white flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {reviewCount} 个待复习
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/80 font-medium text-sm">科学复习，高效记忆</p>
+              </div>
+              <ChevronRight className="w-6 h-6 text-white/80" />
+            </div>
+          </Card>
+        </MotionDiv>
+      )}
 
       {/* Skill Tree */}
       <div className="space-y-8">

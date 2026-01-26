@@ -13,6 +13,7 @@ import { SkillDetail } from './pages/SkillDetail';
 import { LessonPage } from './pages/LessonPage';
 import { Achievements } from './pages/Achievements';
 import { DailyChallenge } from './pages/DailyChallenge';
+import { Review } from './pages/Review';
 import { TabLayout } from './components/layout/TabLayout';
 import { useUserStore } from './store/useUserStore';
 import { AchievementToast, registerAchievementCallback } from './components/game/AchievementToast';
@@ -97,6 +98,7 @@ function App() {
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/daily-challenge" element={<DailyChallenge />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/review" element={<Review />} />
           
           {/* Legacy Home - redirect to Learn */}
           <Route path="/home" element={<Home />} />

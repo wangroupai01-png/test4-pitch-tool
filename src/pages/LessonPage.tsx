@@ -12,6 +12,7 @@ import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
 import { showLevelUpToast } from '../components/game/LevelUpToast';
+import { updateReviewSchedule } from '../utils/reviewService';
 
 interface Lesson {
   id: string;
@@ -440,6 +441,9 @@ export const LessonPage = () => {
         // 检查成就解锁
         await checkAndUnlockAchievements(user.id);
       }
+
+      // 更新复习计划（无论是否通过都更新，用于间隔重复算法）
+      await updateReviewSchedule(user.id, lesson.id, score);
     } catch (err) {
       console.error('[LessonPage] Error saving progress:', err);
     }
