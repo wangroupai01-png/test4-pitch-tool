@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles, RefreshCw } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
@@ -22,22 +22,83 @@ interface SkillProgress {
   status: 'locked' | 'unlocked' | 'in_progress' | 'completed';
 }
 
+// 缓存数据结构
+interface CacheData {
+  skills: Skill[];
+  lessonCounts: Map<string, { total: number; completed: number }>;
+  skillProgress: Map<string, SkillProgress>;
+  timestamp: number;
+  userId: string | null;
+}
+
+// 全局缓存（组件外部，页面切换时保留）
+let globalCache: CacheData | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
 const MotionDiv = motion.div as any;
+const MotionButton = motion.button as any;
 
 export const Learn = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [skillProgress, setSkillProgress] = useState<Map<string, SkillProgress>>(new Map());
   const [lessonCounts, setLessonCounts] = useState<Map<string, { total: number; completed: number }>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useUserStore();
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     loadSkillTree();
   }, [user]);
 
-  const loadSkillTree = async () => {
-    setLoading(true);
+  // 检查缓存是否有效
+  const isCacheValid = useCallback(() => {
+    if (!globalCache) return false;
+    const now = Date.now();
+    const isExpired = now - globalCache.timestamp > CACHE_DURATION;
+    const userChanged = globalCache.userId !== (user?.id || null);
+    return !isExpired && !userChanged;
+  }, [user]);
+
+  // 从缓存加载数据
+  const loadFromCache = useCallback(() => {
+    if (globalCache) {
+      setSkills(globalCache.skills);
+      setLessonCounts(new Map(globalCache.lessonCounts));
+      setSkillProgress(new Map(globalCache.skillProgress));
+      return true;
+    }
+    return false;
+  }, []);
+
+  // 保存到缓存
+  const saveToCache = useCallback((
+    skillsData: Skill[],
+    counts: Map<string, { total: number; completed: number }>,
+    progress: Map<string, SkillProgress>
+  ) => {
+    globalCache = {
+      skills: skillsData,
+      lessonCounts: new Map(counts),
+      skillProgress: new Map(progress),
+      timestamp: Date.now(),
+      userId: user?.id || null,
+    };
+  }, [user]);
+
+  const loadSkillTree = async (forceRefresh = false) => {
+    // 如果不是强制刷新且缓存有效，使用缓存
+    if (!forceRefresh && isCacheValid() && !initialLoadDone.current) {
+      loadFromCache();
+      setLoading(false);
+      initialLoadDone.current = true;
+      return;
+    }
+
+    if (!forceRefresh) {
+      setLoading(true);
+    }
+    
     try {
       // 加载所有技能
       const { data: skillsData, error: skillsError } = await supabase
@@ -48,6 +109,7 @@ export const Learn = () => {
       if (skillsError) {
         console.error('[Learn] Error loading skills:', skillsError);
         setLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
@@ -64,32 +126,26 @@ export const Learn = () => {
         current.total++;
         counts.set(lesson.skill_id, current);
       });
-      setLessonCounts(counts);
+
+      let progressMap = new Map<string, SkillProgress>();
 
       // 如果用户登录，加载进度
       if (user) {
-        console.log('[Learn] Loading progress for user:', user.id);
-        
-        const { data: progressData, error: progressError } = await supabase
+        const { data: progressData } = await supabase
           .from('user_skill_progress')
           .select('*')
           .eq('user_id', user.id);
-        
-        console.log('[Learn] Skill progress:', { progressData, progressError });
 
-        const progressMap = new Map<string, SkillProgress>();
         progressData?.forEach((p: any) => {
           progressMap.set(p.skill_id, p);
         });
 
         // 获取课程完成进度
-        const { data: lessonProgressData, error: lessonError } = await supabase
+        const { data: lessonProgressData } = await supabase
           .from('user_lesson_progress')
           .select('lesson_id, status')
           .eq('user_id', user.id)
           .eq('status', 'completed');
-        
-        console.log('[Learn] Lesson progress:', { lessonProgressData, lessonError });
 
         // 统计每个技能完成的课程数
         if (lessonProgressData && lessonsData) {
@@ -105,23 +161,32 @@ export const Learn = () => {
               }
             }
           });
-          setLessonCounts(new Map(counts));
         }
-
-        setSkillProgress(progressMap);
       } else {
         // 访客模式：第一个技能解锁
-        const progressMap = new Map<string, SkillProgress>();
         if (skillsData && skillsData.length > 0) {
           progressMap.set(skillsData[0].id, { skill_id: skillsData[0].id, status: 'unlocked' });
         }
-        setSkillProgress(progressMap);
       }
+
+      setLessonCounts(new Map(counts));
+      setSkillProgress(progressMap);
+
+      // 保存到缓存
+      saveToCache(skillsData || [], counts, progressMap);
+      initialLoadDone.current = true;
     } catch (err) {
       console.error('[Learn] Error:', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  // 手动刷新
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    loadSkillTree(true);
   };
 
   const getSkillStatus = (skill: Skill): 'locked' | 'unlocked' | 'in_progress' | 'completed' => {
@@ -200,7 +265,16 @@ export const Learn = () => {
               <div className="p-2 bg-primary rounded-xl border-3 border-dark shadow-neo-sm">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-dark">学习中心</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-dark flex-1">学习中心</h1>
+              <MotionButton
+                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="p-2 bg-slate-100 rounded-xl border-2 border-dark hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-5 h-5 text-dark ${isRefreshing ? 'animate-spin' : ''}`} />
+              </MotionButton>
             </div>
             <p className="text-slate-500 font-bold">系统化学习，解锁你的音乐潜能 🎵</p>
           </div>

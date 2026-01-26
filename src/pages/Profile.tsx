@@ -10,6 +10,35 @@ import { supabase } from '../lib/supabase';
 
 const MotionDiv = motion.div as any;
 
+// 预设头像（与 Settings 页面保持一致）
+const PRESET_AVATARS: Record<number, { emoji: string; bg: string }> = {
+  1: { emoji: '🎵', bg: 'from-primary to-secondary' },
+  2: { emoji: '🎸', bg: 'from-red-500 to-orange-500' },
+  3: { emoji: '🎹', bg: 'from-slate-700 to-slate-900' },
+  4: { emoji: '🎤', bg: 'from-pink-500 to-rose-500' },
+  5: { emoji: '🎺', bg: 'from-yellow-400 to-amber-500' },
+  6: { emoji: '🥁', bg: 'from-orange-500 to-red-600' },
+  7: { emoji: '🎻', bg: 'from-amber-600 to-yellow-700' },
+  8: { emoji: '🎷', bg: 'from-indigo-500 to-purple-600' },
+  9: { emoji: '🪕', bg: 'from-lime-500 to-green-600' },
+  10: { emoji: '🎶', bg: 'from-cyan-500 to-blue-600' },
+  11: { emoji: '🦊', bg: 'from-orange-400 to-amber-500' },
+  12: { emoji: '🐱', bg: 'from-gray-400 to-gray-600' },
+  13: { emoji: '🐶', bg: 'from-amber-400 to-yellow-600' },
+  14: { emoji: '🐼', bg: 'from-slate-200 to-slate-400' },
+  15: { emoji: '🦁', bg: 'from-amber-500 to-orange-600' },
+  16: { emoji: '🐰', bg: 'from-pink-300 to-pink-500' },
+  17: { emoji: '🦋', bg: 'from-blue-400 to-purple-500' },
+  18: { emoji: '🌸', bg: 'from-pink-400 to-rose-400' },
+  19: { emoji: '🌊', bg: 'from-cyan-400 to-blue-500' },
+  20: { emoji: '🌙', bg: 'from-indigo-600 to-purple-800' },
+  21: { emoji: '⭐', bg: 'from-yellow-300 to-amber-400' },
+  22: { emoji: '🔥', bg: 'from-red-500 to-orange-500' },
+  23: { emoji: '💎', bg: 'from-cyan-300 to-blue-500' },
+  24: { emoji: '🎨', bg: 'from-purple-400 to-pink-500' },
+  25: { emoji: '🚀', bg: 'from-slate-600 to-indigo-700' },
+};
+
 interface UserStats {
   totalXp: number;
   level: number;
@@ -134,6 +163,39 @@ export const Profile = () => {
 
   const displayName = profile?.username || user?.email?.split('@')[0] || '访客用户';
 
+  // 渲染头像
+  const renderAvatar = () => {
+    const avatarUrl = profile?.avatar_url;
+    
+    if (avatarUrl?.startsWith('preset:')) {
+      const presetId = parseInt(avatarUrl.replace('preset:', ''));
+      const preset = PRESET_AVATARS[presetId];
+      if (preset) {
+        return (
+          <div className={`w-full h-full bg-gradient-to-br ${preset.bg} flex items-center justify-center`}>
+            <span className="text-5xl">{preset.emoji}</span>
+          </div>
+        );
+      }
+    }
+    
+    if (avatarUrl && !avatarUrl.startsWith('preset:')) {
+      return (
+        <img 
+          src={avatarUrl} 
+          alt="头像" 
+          className="w-full h-full object-cover"
+        />
+      );
+    }
+    
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+        <User className="w-12 h-12 text-white" />
+      </div>
+    );
+  };
+
   // 未登录时显示大的登录提示卡片
   if (isGuest) {
     return (
@@ -210,9 +272,9 @@ export const Profile = () => {
               {/* Avatar */}
               <MotionDiv 
                 whileHover={{ rotate: 5, scale: 1.05 }}
-                className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-3 border-dark shadow-neo"
+                className="w-24 h-24 rounded-2xl overflow-hidden border-3 border-dark shadow-neo flex-shrink-0"
               >
-                <User className="w-12 h-12 text-white" />
+                {renderAvatar()}
               </MotionDiv>
               
               {/* Info */}
@@ -277,7 +339,7 @@ export const Profile = () => {
       <div className="space-y-3">
         {[
           { icon: Award, label: '我的成就', color: 'text-yellow-500', onClick: () => navigate('/achievements') },
-          { icon: Settings, label: '设置', color: 'text-slate-500', onClick: () => alert('设置功能即将完善！') },
+          { icon: Settings, label: '设置', color: 'text-slate-500', onClick: () => navigate('/settings') },
         ].map((item, index) => (
           <MotionDiv
             key={item.label}

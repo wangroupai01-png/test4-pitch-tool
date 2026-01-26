@@ -28,6 +28,7 @@ interface UserState {
   updateGuestScore: (mode: 'quiz' | 'sing', score: number, level?: number, streak?: number) => void;
   syncGuestDataToCloud: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>()(
@@ -193,6 +194,25 @@ export const useUserStore = create<UserState>()(
         const { profile } = get();
         if (profile) {
           set({ profile: { ...profile, ...updates } });
+        }
+      },
+      
+      refreshProfile: async () => {
+        const { user } = get();
+        if (!user) return;
+        
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (profile) {
+            set({ profile });
+          }
+        } catch (err) {
+          console.error('Failed to refresh profile:', err);
         }
       },
     }),

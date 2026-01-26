@@ -8,6 +8,7 @@ import { Learn } from './pages/Learn';
 import { Practice } from './pages/Practice';
 import { Compete } from './pages/Compete';
 import { Profile } from './pages/Profile';
+import { Settings } from './pages/Settings';
 import { SkillDetail } from './pages/SkillDetail';
 import { LessonPage } from './pages/LessonPage';
 import { Achievements } from './pages/Achievements';
@@ -95,6 +96,7 @@ function App() {
           <Route path="/lesson/:lessonId" element={<LessonPage />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/daily-challenge" element={<DailyChallenge />} />
+          <Route path="/settings" element={<Settings />} />
           
           {/* Legacy Home - redirect to Learn */}
           <Route path="/home" element={<Home />} />

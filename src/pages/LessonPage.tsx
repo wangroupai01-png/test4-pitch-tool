@@ -41,7 +41,7 @@ interface Question {
 }
 
 // Sing 课程相关状态
-type SingState = 'idle' | 'listening' | 'demo' | 'recording' | 'evaluating' | 'feedback';
+type SingState = 'idle' | 'listening' | 'demo' | 'countdown' | 'recording' | 'evaluating' | 'feedback';
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -67,8 +67,10 @@ export const LessonPage = () => {
   // Sing 模式专用状态
   const [singState, setSingState] = useState<SingState>('idle');
   const [singProgress, setSingProgress] = useState(0); // 0-100 进度
+  const [countdown, setCountdown] = useState(3); // 倒计时
   const accuracyBufferRef = useRef<number[]>([]); // 用于收集准确度数据
   const singTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (lessonId) {
@@ -85,10 +87,15 @@ export const LessonPage = () => {
       // 重置 Sing 模式状态
       setSingState('idle');
       setSingProgress(0);
+      setCountdown(3);
       accuracyBufferRef.current = [];
       if (singTimerRef.current) {
         clearTimeout(singTimerRef.current);
         singTimerRef.current = null;
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
       }
       if (isListening) {
         stopListening();
@@ -103,6 +110,9 @@ export const LessonPage = () => {
     return () => {
       if (singTimerRef.current) {
         clearTimeout(singTimerRef.current);
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
       }
       if (isListening) {
         stopListening();
@@ -155,7 +165,7 @@ export const LessonPage = () => {
 
   // ============ Sing 模式专用函数 ============
 
-  // 开始演示
+  // 开始演示（只播放不录音）
   const handleSingDemo = useCallback(() => {
     if (!currentQuestion || !isReady || currentQuestion.targetMidi === undefined) return;
     
@@ -163,14 +173,14 @@ export const LessonPage = () => {
     const frequency = getFrequency(currentQuestion.targetMidi);
     playNote(frequency, 1.5); // 播放 1.5 秒
     
-    // 演示结束后自动进入录音状态
+    // 演示结束后返回空闲状态
     setTimeout(() => {
       setSingState('idle');
     }, 1500);
   }, [currentQuestion, isReady, playNote]);
 
-  // 开始录音跟唱
-  const handleStartSing = useCallback(async () => {
+  // 实际开始录音（内部函数）
+  const startRecording = useCallback(async () => {
     if (!currentQuestion || currentQuestion.targetMidi === undefined) return;
     
     setSingState('recording');
@@ -200,6 +210,38 @@ export const LessonPage = () => {
       evaluateSingPerformance();
     }, duration);
   }, [currentQuestion, startListening, stopListening]);
+
+  // 开始跟唱（先播放示范音 -> 倒计时 -> 录音）
+  const handleStartSing = useCallback(() => {
+    if (!currentQuestion || !isReady || currentQuestion.targetMidi === undefined) return;
+    
+    // 1. 播放示范音
+    setSingState('demo');
+    const frequency = getFrequency(currentQuestion.targetMidi);
+    playNote(frequency, 1.5);
+    
+    // 2. 示范音播放完后，开始倒计时（等1.5秒示范 + 0.5秒回声消失）
+    setTimeout(() => {
+      setSingState('countdown');
+      setCountdown(3);
+      
+      // 开始倒计时
+      let count = 3;
+      countdownTimerRef.current = setInterval(() => {
+        count--;
+        setCountdown(count);
+        
+        if (count <= 0) {
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          // 3. 倒计时结束，开始录音
+          startRecording();
+        }
+      }, 1000);
+    }, 2000); // 1.5秒示范 + 0.5秒缓冲
+  }, [currentQuestion, isReady, playNote, startRecording]);
 
   // 实时收集音准数据
   useEffect(() => {
@@ -838,6 +880,27 @@ export const LessonPage = () => {
                         <h2 className="text-2xl font-black text-dark">
                           正在播放示范...
                         </h2>
+                        <p className="text-slate-500 font-bold mt-2">请仔细听这个音</p>
+                      </>
+                    )}
+                    
+                    {singState === 'countdown' && (
+                      <>
+                        <MotionDiv
+                          key={countdown}
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 1.5, opacity: 0 }}
+                          className="w-24 h-24 mx-auto mb-4 bg-accent rounded-full flex items-center justify-center border-4 border-dark shadow-neo"
+                        >
+                          <span className="text-5xl font-black text-white">{countdown}</span>
+                        </MotionDiv>
+                        <h2 className="text-2xl font-black text-dark mb-2">
+                          准备好了吗？
+                        </h2>
+                        <p className="text-slate-500 font-bold">
+                          倒计时结束后开始唱！
+                        </p>
                       </>
                     )}
                     
