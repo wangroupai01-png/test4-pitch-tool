@@ -70,6 +70,10 @@ export const LessonPage = () => {
   const [singState, setSingState] = useState<SingState>('idle');
   const [singProgress, setSingProgress] = useState(0); // 0-100 进度
   const [countdown, setCountdown] = useState(3); // 倒计时
+  
+  // 限时模式状态
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const questionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const accuracyBufferRef = useRef<number[]>([]); // 用于收集准确度数据
   const singTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,6 +89,13 @@ export const LessonPage = () => {
       setIsCorrect(false);
       setNextLessonId(null);
       setGameState('loading');
+      setTimeLeft(null);
+      
+      // 清除限时计时器
+      if (questionTimerRef.current) {
+        clearInterval(questionTimerRef.current);
+        questionTimerRef.current = null;
+      }
       
       // 重置 Sing 模式状态
       setSingState('idle');
@@ -145,6 +156,47 @@ export const LessonPage = () => {
   };
 
   const currentQuestion = lesson?.content?.questions?.[currentQuestionIndex];
+  const timeLimit = lesson?.content?.timeLimit; // 限时秒数
+
+  // 限时模式计时器
+  useEffect(() => {
+    // 清除之前的计时器
+    if (questionTimerRef.current) {
+      clearInterval(questionTimerRef.current);
+      questionTimerRef.current = null;
+    }
+
+    // 如果有时间限制且正在答题，启动计时器
+    if (timeLimit && gameState === 'playing' && !showFeedback && currentQuestion) {
+      setTimeLeft(timeLimit);
+      
+      questionTimerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev === null || prev <= 1) {
+            // 时间到，自动判为错误
+            if (questionTimerRef.current) {
+              clearInterval(questionTimerRef.current);
+              questionTimerRef.current = null;
+            }
+            // 触发超时处理
+            setShowFeedback(true);
+            setIsCorrect(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (!timeLimit) {
+      setTimeLeft(null);
+    }
+
+    return () => {
+      if (questionTimerRef.current) {
+        clearInterval(questionTimerRef.current);
+        questionTimerRef.current = null;
+      }
+    };
+  }, [currentQuestionIndex, gameState, showFeedback, timeLimit, currentQuestion]);
 
   const handlePlayNote = useCallback(() => {
     if (currentQuestion && isReady) {
@@ -157,6 +209,32 @@ export const LessonPage = () => {
         setTimeout(() => {
           playNote(secondFreq);
         }, 600); // 间隔 600ms 播放第二个音
+      } else if (currentQuestion.type === 'chord' && currentQuestion.rootMidi !== undefined && currentQuestion.chordType) {
+        // 和弦类型：同时播放三个音
+        const root = currentQuestion.rootMidi;
+        let intervals: number[];
+        
+        switch (currentQuestion.chordType) {
+          case 'major':
+            intervals = [0, 4, 7]; // 大三和弦: 根音 + 大三度 + 纯五度
+            break;
+          case 'minor':
+            intervals = [0, 3, 7]; // 小三和弦: 根音 + 小三度 + 纯五度
+            break;
+          case 'dim':
+            intervals = [0, 3, 6]; // 减三和弦
+            break;
+          case 'aug':
+            intervals = [0, 4, 8]; // 增三和弦
+            break;
+          default:
+            intervals = [0, 4, 7];
+        }
+        
+        // 同时播放所有音符形成和弦
+        intervals.forEach(interval => {
+          playNote(getFrequency(root + interval));
+        });
       } else if (currentQuestion.targetMidi !== undefined) {
         // 单音识别类型
         const frequency = getFrequency(currentQuestion.targetMidi);
@@ -775,8 +853,20 @@ export const LessonPage = () => {
           </div>
         </div>
         
-        <div className="px-3 py-1 bg-primary text-white font-black rounded-lg border-2 border-dark shadow-neo-sm">
-          {currentQuestionIndex + 1}/{lesson.content.questions.length}
+        <div className="flex items-center gap-2">
+          {/* 限时模式计时器 */}
+          {timeLeft !== null && (
+            <div className={`px-3 py-1 font-black rounded-lg border-2 border-dark shadow-neo-sm flex items-center gap-1 ${
+              timeLeft <= 2 ? 'bg-red-500 text-white animate-pulse' : 
+              timeLeft <= 5 ? 'bg-amber-400 text-dark' : 
+              'bg-white text-dark'
+            }`}>
+              ⏱️ {timeLeft}s
+            </div>
+          )}
+          <div className="px-3 py-1 bg-primary text-white font-black rounded-lg border-2 border-dark shadow-neo-sm">
+            {currentQuestionIndex + 1}/{lesson.content.questions.length}
+          </div>
         </div>
       </header>
 
@@ -1174,7 +1264,7 @@ export const LessonPage = () => {
                       返回目录
                     </Button>
                     <Button 
-                      variant={isPassed() && nextLessonId ? "white" : "primary"}
+                      variant={isPassed() && nextLessonId ? "outline" : "primary"}
                       className="flex-1 py-3"
                       onClick={() => {
                         setCurrentQuestionIndex(0);
@@ -1183,6 +1273,7 @@ export const LessonPage = () => {
                         setSelectedIntervalAnswer(null);
                         setShowFeedback(false);
                         setNextLessonId(null);
+                        setTimeLeft(null);
                         setGameState('playing');
                       }}
                     >
