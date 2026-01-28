@@ -12,12 +12,6 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
 
-// 道具图标映射 (用于渲染)
-const ITEM_ICONS = {
-  skip: SkipForward,
-  hint: Lightbulb,
-  retry: RefreshCw,
-};
 import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
