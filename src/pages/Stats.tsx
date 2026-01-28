@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, TrendingUp, Target, Music, Mic, Clock, Award } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Music, Award } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useUserStore } from '../store/useUserStore';

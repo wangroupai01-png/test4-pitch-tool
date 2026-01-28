@@ -27,6 +27,7 @@ interface Lesson {
     type: string;
     questions: Question[];
     passThreshold: number;
+    timeLimit?: number; // 限时模式秒数
   };
 }
 
@@ -40,6 +41,9 @@ interface Question {
   baseMidi?: number;
   intervalSemitones?: number;
   answer?: string;
+  // 和弦识别
+  rootMidi?: number;
+  chordType?: string;
 }
 
 // Sing 课程相关状态

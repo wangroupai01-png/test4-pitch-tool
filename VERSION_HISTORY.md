@@ -26,6 +26,29 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.4-practice-enhance (2026-01-28) - 待验收
+**状态**: ⏳ 待用户验收
+
+**新增功能**:
+- 🎤 **录音回放**: 自由哼唱模式可录制并回放声音
+- 🎯 **目标音辅助线**: 可视化器中显示目标音参考线
+- 🛠️ **技能道具**: 哼唱闯关新增跳过/提示/重置道具
+- 📋 **协作规范**: 开发规则文档和项目状态总览
+
+**修改文件**:
+- `src/pages/FreeMode.tsx` - 录音功能、目标音UI
+- `src/pages/SingMode.tsx` - 道具系统
+- `src/hooks/usePitchDetector.ts` - 暴露 mediaStream
+- `.cursor/rules/development-workflow.mdc` - 开发规范
+- `PROJECT_STATUS.md` - 项目状态总览
+
+**回滚命令**:
+```powershell
+git checkout v2.3-phase5
+```
+
+---
+
 ### v2.3-phase5 (2026-01-26)
 **状态**: ✅ Phase 5 完成 - 内容扩展
 

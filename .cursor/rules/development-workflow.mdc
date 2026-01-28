@@ -1,0 +1,210 @@
+---
+description: Melody Challenger 项目协作开发规范 - 包含完整的开发流程、UI规范、技术标准
+alwaysApply: true
+---
+
+# 🎵 Melody Challenger 协作开发规范
+
+## 一、开发流程 (必须遵循)
+
+### 1. 开发前
+- [ ] 阅读 `PROJECT_LOG.md` 了解项目当前状态
+- [ ] 阅读 `docs/PRD.md` 了解产品需求
+- [ ] 阅读 `VERSION_HISTORY.md` 了解版本历史
+- [ ] 确认当前开发任务
+
+### 2. 开发中
+- [ ] 遵循本文档的 UI 和技术规范
+- [ ] 每完成一个功能模块，更新 `PROJECT_LOG.md`
+- [ ] 代码中添加必要注释
+
+### 3. 开发后 (测试验收)
+- [ ] **本地构建测试**: `npm run build` 确保无报错
+- [ ] **启动开发服务器**: `npm run dev` 进行功能测试
+- [ ] **多场景测试**: 正常流程、边界情况、错误处理
+- [ ] **移动端测试**: 使用浏览器开发者工具模拟手机尺寸
+- [ ] **通知用户验收**: 告知测试结果和访问地址
+
+### 4. 验收通过后
+- [ ] 用户确认验收通过
+- [ ] 更新 `VERSION_HISTORY.md`
+- [ ] Git 提交并推送到 GitHub
+- [ ] 创建版本标签 (如需要)
+
+---
+
+## 二、UI 规范
+
+### 设计风格: Neo-Brutalism
+- 粗边框 (border-2 或 border-4)
+- 偏移阴影 (shadow-[4px_4px_0_#000])
+- 高对比度配色
+- 圆角适中 (rounded-lg 或 rounded-xl)
+
+### 色彩系统
+```
+primary:   #7F5AF0 (紫色 - 主色调)
+secondary: #2CB67D (绿色 - 成功/完成)
+accent:    #FF8906 (橙色 - 强调/警告)
+dark:      #16161a (深色背景)
+light-bg:  #FFFFFE (浅色背景)
+```
+
+### 组件规范
+- 按钮: 使用 `src/components/ui/Button.tsx`
+- 卡片: 使用 `src/components/ui/Card.tsx`
+- 间距: 使用 Tailwind 标准间距 (p-4, gap-4 等)
+- 动画: 使用 Framer Motion，保持一致性
+
+### 响应式断点
+- 移动优先设计
+- sm: 640px, md: 768px, lg: 1024px, xl: 1280px
+
+---
+
+## 三、技术规范
+
+### 代码风格
+- 使用 TypeScript 严格类型
+- 组件使用函数式 + hooks
+- 状态管理使用 Zustand
+- 异步数据使用 async/await
+
+### 文件命名
+- 组件: PascalCase (如 `PianoKeyboard.tsx`)
+- hooks: camelCase + use 前缀 (如 `useAudioPlayer.ts`)
+- 工具函数: camelCase (如 `musicTheory.ts`)
+- SQL 脚本: kebab-case (如 `add-review-system.sql`)
+
+### Supabase 查询规范
+```typescript
+// ❌ 错误: 使用 .single() 可能抛出 406
+const { data } = await supabase.from('table').select().eq('id', id).single();
+
+// ✅ 正确: 使用 .maybeSingle() 避免空记录错误
+const { data } = await supabase.from('table').select().eq('id', id).maybeSingle();
+```
+
+### 音频处理规范
+- 使用 YIN 算法进行音高检测
+- 禁用浏览器自动音频处理 (echoCancellation, noiseSuppression)
+- 预加载常用音频采样
+
+---
+
+## 四、日志记录规范
+
+### PROJECT_LOG.md 更新格式
+```markdown
+### YYYY-MM-DD: 功能名称
+
+#### 新增功能
+**1. 功能标题**
+- 功能描述
+- 相关文件: `src/path/to/file.tsx`
+
+#### 数据库更新
+需要运行: `src/lib/xxx.sql`
+
+#### 踩坑记录
+- ❌ 问题描述
+- ✅ 解决方案
+```
+
+### VERSION_HISTORY.md 更新格式
+```markdown
+### vX.X-phaseX (YYYY-MM-DD)
+**状态**: ✅ Phase X 完成
+
+**新增功能**:
+- 功能列表
+
+**数据库更新**:
+- SQL 文件列表
+
+**回滚命令**:
+git checkout vX.X-phaseX
+```
+
+---
+
+## 五、Git 提交规范
+
+### 提交信息格式
+```
+<类型>: <简短描述>
+
+<详细说明 (可选)>
+```
+
+### 类型
+- `feat`: 新功能
+- `fix`: 修复bug
+- `refactor`: 重构
+- `style`: UI/样式调整
+- `docs`: 文档更新
+- `chore`: 构建/配置更新
+
+### 版本标签
+完成一个 Phase 后创建标签:
+```powershell
+git tag -a vX.X-phaseX -m "Phase X 完成"
+git push origin vX.X-phaseX
+```
+
+---
+
+## 六、测试检查清单
+
+开发完成后，必须完成以下测试:
+
+### 自动化功能测试 (推荐)
+
+使用 **test-melody-webapp** 技能进行完整功能测试：
+
+```
+测试账号: 782139616@qq.com
+测试密码: xu960227
+```
+
+**测试流程**:
+1. 运行 `npm run build` 确保构建成功
+2. 运行 `npm run dev` 启动开发服务器
+3. 打开浏览器访问 http://localhost:5173/
+4. 连接 Browser MCP 扩展
+5. 使用浏览器自动化工具测试以下模块:
+
+| 模块 | 路由 | 测试重点 |
+|------|------|---------|
+| 学习中心 | `/learn` | 技能树、课程列表 |
+| 技能详情 | `/learn/skill/{id}` | 进度、课程卡片 |
+| 课程页面 | `/lesson/{id}` | 答题流程 |
+| 自由哼唱 | `/free` | 录音回放、目标音辅助 |
+| 哼唱闯关 | `/sing` | 道具系统 |
+| 竞技场 | `/compete` | 每日挑战 |
+| 复习中心 | `/review` | 复习列表 |
+| 成就系统 | `/achievements` | 成就进度 |
+| 个人中心 | `/profile` | 用户信息 |
+
+> 详细测试清单见: `.cursor/skills/test-melody-webapp/checklist.md`
+
+### 手动功能测试
+- [ ] 新功能按预期工作
+- [ ] 不影响现有功能
+- [ ] 数据正确保存到数据库
+
+### 边界测试
+- [ ] 空数据处理
+- [ ] 错误输入处理
+- [ ] 网络异常处理
+
+### UI 测试
+- [ ] 桌面端显示正常
+- [ ] 移动端显示正常 (375px, 414px)
+- [ ] 动画流畅
+- [ ] 无控制台报错
+
+### 构建测试
+- [ ] `npm run build` 无报错
+- [ ] 无 TypeScript 类型错误
+- [ ] 无 ESLint 警告

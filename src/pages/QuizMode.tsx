@@ -296,11 +296,12 @@ export const QuizMode = () => {
     setStatus('config');
   };
   
-  // 重新开始
-  const restartGame = () => {
+  // 重新开始 (可通过返回按钮重置)
+  const _restartGame = () => {
     clearTimer();
     setStatus('idle');
   };
+  void _restartGame; // 保留备用
 
   return (
     <div className="min-h-screen bg-light-bg text-dark p-3 md:p-6 flex flex-col font-sans overflow-x-hidden">

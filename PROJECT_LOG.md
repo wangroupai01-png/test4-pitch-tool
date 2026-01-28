@@ -22,6 +22,51 @@
 
 ## 关键开发节点
 
+### 2026-01-28: 练习模式增强 + 协作规范
+
+#### 新增功能
+
+**1. 自由哼唱 - 录音回放功能**
+- 使用 MediaRecorder API 录制用户声音
+- 录音列表，最多保留5条
+- 支持播放、删除录音
+- 显示录音时长
+
+**相关文件**:
+- `src/pages/FreeMode.tsx` - 录音状态和UI
+- `src/hooks/usePitchDetector.ts` - 暴露 mediaStream
+
+**2. 自由哼唱 - 目标音辅助线**
+- 可选开启的目标音参考线
+- 滑动条选择目标音 (C3-C6)
+- 试听目标音功能
+- 可视化器中显示绿色目标线
+
+**相关文件**:
+- `src/pages/FreeMode.tsx` - 目标音控制UI
+- `src/components/game/PitchVisualizer.tsx` - 已支持 targetMidi
+
+**3. 哼唱闯关 - 技能道具系统**
+- 跳过道具: 跳过当前关卡，不加分
+- 提示道具: 播放目标音3次
+- 重置道具: 重置进度但不扣命
+- 每局游戏3个道具，用完不补充
+
+**相关文件**:
+- `src/pages/SingMode.tsx` - 道具状态和使用逻辑
+
+**4. 协作开发规范**
+- `.cursor/rules/development-workflow.mdc` - AI协作开发规则
+- `PROJECT_STATUS.md` - 一眼能看懂的项目管理文件
+
+#### 协作开发流程
+1. 开发前：阅读 PRD、PROJECT_LOG、VERSION_HISTORY
+2. 开发中：遵循规范，记录日志
+3. 开发后：本地测试 → 通知验收 → 验收通过 → 推送 GitHub
+4. 版本管理：更新 VERSION_HISTORY.md，创建 Git 标签
+
+---
+
 ### 2026-01-26: Phase 4 - 智能学习系统 (v2.2)
 
 #### 新增功能

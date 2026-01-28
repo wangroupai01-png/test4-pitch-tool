@@ -150,7 +150,8 @@ export const usePitchDetector = () => {
     stopListening, 
     isListening, 
     pitch,
-    analyser: analyserRef.current // Expose for visualizer
+    analyser: analyserRef.current, // Expose for visualizer
+    mediaStream: streamRef.current, // Expose for recording
   };
 };
 

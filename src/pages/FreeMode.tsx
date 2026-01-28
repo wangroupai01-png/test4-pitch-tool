@@ -1,21 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mic, MicOff, TrendingUp, TrendingDown, RotateCcw, Music } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, TrendingUp, TrendingDown, RotateCcw, Music, Circle, Square, Play, Trash2, Target } from 'lucide-react';
 import { usePitchDetector } from '../hooks/usePitchDetector';
 import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { clsx } from 'clsx';
-import { getNoteName } from '../utils/musicTheory';
+import { getNoteName, getFrequency } from '../utils/musicTheory';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
+
+// 录音记录类型
+interface Recording {
+  id: string;
+  blob: Blob;
+  url: string;
+  duration: number;
+  timestamp: Date;
+}
 
 export const FreeMode = () => {
   const navigate = useNavigate();
-  const { startListening, stopListening, isListening, pitch } = usePitchDetector();
+  const { startListening, stopListening, isListening, pitch, mediaStream } = usePitchDetector();
+  const { playNote } = useAudioPlayer();
   
   // 音域测试状态
   const [lowestMidi, setLowestMidi] = useState<number | null>(null);
   const [highestMidi, setHighestMidi] = useState<number | null>(null);
   const [isRangeTesting, setIsRangeTesting] = useState(false);
+  
+  // 录音状态
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingDurationRef = useRef(0); // 用于在回调中获取最新时长
+  
+  // 目标音辅助线状态
+  const [showTargetLine, setShowTargetLine] = useState(false);
+  const [targetMidi, setTargetMidi] = useState<number>(60); // 默认 C4
   
   // 更新音域
   useEffect(() => {
@@ -60,10 +86,126 @@ export const FreeMode = () => {
   const toggleListening = () => {
     if (isListening) {
       stopListening();
+      // 如果正在录音，也停止录音
+      if (isRecording) {
+        stopRecording();
+      }
     } else {
       startListening();
     }
   };
+  
+  // 开始录音
+  const startRecording = () => {
+    if (!mediaStream) {
+      console.error('没有可用的媒体流');
+      return;
+    }
+    
+    audioChunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(mediaStream);
+    mediaRecorderRef.current = mediaRecorder;
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunksRef.current.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      // 使用 ref 获取最新的录音时长
+      const finalDuration = recordingDurationRef.current;
+      const newRecording: Recording = {
+        id: Date.now().toString(),
+        blob,
+        url,
+        duration: finalDuration,
+        timestamp: new Date(),
+      };
+      setRecordings(prev => [newRecording, ...prev].slice(0, 5)); // 最多保留5条
+      setRecordingDuration(0);
+      recordingDurationRef.current = 0;
+    };
+    
+    mediaRecorder.start(100); // 每100ms收集一次数据
+    setIsRecording(true);
+    setRecordingDuration(0);
+    recordingDurationRef.current = 0;
+    
+    // 开始计时
+    recordingTimerRef.current = setInterval(() => {
+      recordingDurationRef.current += 1; // 更新 ref
+      setRecordingDuration(prev => prev + 1); // 更新 state 用于 UI 显示
+    }, 1000);
+  };
+  
+  // 停止录音
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+  
+  // 播放录音
+  const playRecording = (recording: Recording) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    const audio = new Audio(recording.url);
+    audioRef.current = audio;
+    setPlayingId(recording.id);
+    
+    audio.onended = () => {
+      setPlayingId(null);
+    };
+    
+    audio.play();
+  };
+  
+  // 删除录音
+  const deleteRecording = (id: string) => {
+    setRecordings(prev => {
+      const recording = prev.find(r => r.id === id);
+      if (recording) {
+        URL.revokeObjectURL(recording.url);
+      }
+      return prev.filter(r => r.id !== id);
+    });
+  };
+  
+  // 格式化时长
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // 播放目标音
+  const playTargetNote = () => {
+    playNote(getFrequency(targetMidi), 1.0, 'sine');
+  };
+  
+  // 清理资源
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      recordings.forEach(r => URL.revokeObjectURL(r.url));
+    };
+  }, []);
 
   // Calculate cents color
   const getTuningStatus = (cents: number) => {
@@ -211,12 +353,131 @@ export const FreeMode = () => {
             )}
           </Card>
         </div>
+        
+        {/* 第二行功能卡片 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          {/* 录音功能 */}
+          <Card className="flex flex-col !p-3 md:!p-4 border-3 border-dark bg-gradient-to-br from-red-50 to-orange-50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Circle className="w-4 h-4 text-red-500" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">录音回放</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                {isRecording && (
+                  <span className="text-red-500 font-bold text-sm animate-pulse">
+                    ● {formatDuration(recordingDuration)}
+                  </span>
+                )}
+                {isListening && !isRecording ? (
+                  <Button size="sm" variant="primary" onClick={startRecording} className="text-xs !px-3 !py-1 bg-red-500 hover:bg-red-600">
+                    <Circle className="w-3 h-3 mr-1 fill-current" />
+                    开始录音
+                  </Button>
+                ) : isRecording ? (
+                  <Button size="sm" variant="outline" onClick={stopRecording} className="text-xs !px-3 !py-1">
+                    <Square className="w-3 h-3 mr-1" />
+                    停止
+                  </Button>
+                ) : (
+                  <span className="text-xs text-slate-400">需先开启麦克风</span>
+                )}
+              </div>
+            </div>
+            
+            {/* 录音列表 */}
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {recordings.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-2">暂无录音</p>
+              ) : (
+                recordings.map((recording, index) => (
+                  <div key={recording.id} className="flex items-center gap-2 bg-white rounded-lg border-2 border-dark p-2">
+                    <Button 
+                      size="sm" 
+                      variant={playingId === recording.id ? "secondary" : "outline"}
+                      onClick={() => playRecording(recording)}
+                      className="!p-1.5"
+                    >
+                      <Play className="w-3 h-3" />
+                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold truncate">录音 #{recordings.length - index}</p>
+                      <p className="text-xs text-slate-400">{formatDuration(recording.duration)}</p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => deleteRecording(recording.id)}
+                      className="!p-1.5 text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+          
+          {/* 目标音辅助线 */}
+          <Card className="flex flex-col !p-3 md:!p-4 border-3 border-dark bg-gradient-to-br from-green-50 to-teal-50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-secondary" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">目标音辅助</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-xs font-bold text-slate-500">{showTargetLine ? '开启' : '关闭'}</span>
+                <div 
+                  className={clsx(
+                    "w-10 h-5 rounded-full border-2 border-dark transition-colors relative",
+                    showTargetLine ? "bg-secondary" : "bg-slate-200"
+                  )}
+                  onClick={() => setShowTargetLine(!showTargetLine)}
+                >
+                  <div className={clsx(
+                    "absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white border border-dark transition-all",
+                    showTargetLine ? "left-5" : "left-0.5"
+                  )} />
+                </div>
+              </label>
+            </div>
+            
+            {showTargetLine && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <input 
+                    type="range"
+                    min={48}
+                    max={84}
+                    value={targetMidi}
+                    onChange={(e) => setTargetMidi(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-secondary"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="bg-white rounded-lg border-2 border-dark px-3 py-1 text-center min-w-[60px]">
+                    <span className="text-lg font-black">{getNoteName(targetMidi).note}</span>
+                    <span className="text-sm font-bold text-slate-500">{getNoteName(targetMidi).octave}</span>
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={playTargetNote} className="!p-2">
+                    <Play className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {!showTargetLine && (
+              <p className="text-xs text-slate-400 text-center py-2">开启后可视化器中将显示目标音参考线</p>
+            )}
+          </Card>
+        </div>
 
         {/* Visualizer Area */}
         <div className="flex-1 min-h-[250px] md:min-h-[500px] border-3 border-dark shadow-neo rounded-3xl overflow-hidden relative bg-dark">
             <PitchVisualizer 
                 pitch={pitch} 
-                isListening={isListening} 
+                isListening={isListening}
+                targetMidi={showTargetLine ? targetMidi : undefined}
             />
             
             {!isListening && (

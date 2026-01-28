@@ -5,12 +5,19 @@ import { Card } from '../components/ui/Card';
 import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { usePitchDetector } from '../hooks/usePitchDetector';
 import { getRandomNote, getNoteName, getFrequency } from '../utils/musicTheory';
-import { ArrowLeft, Mic, Trophy, Play, Check, Volume2, Music, Heart, Zap, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Mic, Trophy, Play, Check, Volume2, Music, Heart, RotateCcw, SkipForward, Lightbulb, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
+
+// 道具图标映射 (用于渲染)
+const ITEM_ICONS = {
+  skip: SkipForward,
+  hint: Lightbulb,
+  retry: RefreshCw,
+};
 import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
@@ -40,6 +47,10 @@ export const SingMode = () => {
   const [bestScore, setBestScore] = useState(0);
   const [lives, setLives] = useState(3); // 生命值
   const [failTimer, setFailTimer] = useState<number | null>(null); // 失败倒计时
+  
+  // 道具系统
+  const [items, setItems] = useState({ skip: 3, hint: 3, retry: 3 });
+  const [showHint, setShowHint] = useState(false); // 是否显示提示效果
   
   const { startListening, stopListening, isListening, pitch } = usePitchDetector();
   const { playNote } = useAudioPlayer();
@@ -244,11 +255,73 @@ export const SingMode = () => {
     setScore(0);
     setLevel(1);
     setLives(3);
+    setItems({ skip: 3, hint: 3, retry: 3 }); // 重置道具
     nextLevel();
   };
   
   const restartGame = () => {
     setGameState('intro');
+  };
+  
+  // 使用跳过道具
+  const useSkip = () => {
+    if (items.skip <= 0 || gameState !== 'playing') return;
+    
+    setItems(prev => ({ ...prev, skip: prev.skip - 1 }));
+    clearFailTimer();
+    
+    // 不加分，直接进入下一关
+    const newLevel = level + 1;
+    setLevel(newLevel);
+    setTimeout(() => nextLevel(), 500);
+  };
+  
+  // 使用提示道具
+  const useHint = () => {
+    if (items.hint <= 0 || gameState !== 'playing' || !targetMidi) return;
+    
+    setItems(prev => ({ ...prev, hint: prev.hint - 1 }));
+    setShowHint(true);
+    
+    // 播放目标音3次
+    const freq = getFrequency(targetMidi);
+    playNote(freq, 0.8, 'sine');
+    setTimeout(() => playNote(freq, 0.8, 'sine'), 1000);
+    setTimeout(() => playNote(freq, 0.8, 'sine'), 2000);
+    setTimeout(() => setShowHint(false), 3000);
+  };
+  
+  // 使用重置道具
+  const useRetry = () => {
+    if (items.retry <= 0 || gameState !== 'playing') return;
+    
+    setItems(prev => ({ ...prev, retry: prev.retry - 1 }));
+    clearFailTimer();
+    setProgress(0);
+    
+    // 重新开始当前关卡，不扣命
+    setTimeout(() => {
+      setGameState('playing');
+      setProgress(0);
+      
+      // 启动新的失败倒计时
+      setFailTimer(FAIL_TIME_LIMIT);
+      failTimerRef.current = setInterval(() => {
+        setFailTimer(prev => {
+          if (prev === null || prev <= 1) {
+            clearFailTimer();
+            handleFail();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      // 播放目标音
+      if (targetMidi) {
+        playNote(getFrequency(targetMidi), 1.5, 'sine');
+      }
+    }, 300);
   };
 
   // Game Loop for checking pitch match
@@ -527,6 +600,56 @@ export const SingMode = () => {
                      </Card>
                  </div>
             </div>
+            
+            {/* 道具栏 */}
+            {gameState === 'playing' && (
+              <div className="flex justify-center gap-2 md:gap-4">
+                {/* 跳过道具 */}
+                <button
+                  onClick={useSkip}
+                  disabled={items.skip <= 0}
+                  className={`flex flex-col items-center px-3 py-2 md:px-4 md:py-3 rounded-xl border-3 border-dark transition-all ${
+                    items.skip > 0 
+                      ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none' 
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <SkipForward className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className="text-xs font-bold mt-1">跳过</span>
+                  <span className="text-xs opacity-70">×{items.skip}</span>
+                </button>
+                
+                {/* 提示道具 */}
+                <button
+                  onClick={useHint}
+                  disabled={items.hint <= 0}
+                  className={`flex flex-col items-center px-3 py-2 md:px-4 md:py-3 rounded-xl border-3 border-dark transition-all ${
+                    items.hint > 0 
+                      ? 'bg-yellow-500 text-dark hover:bg-yellow-400 shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none' 
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  } ${showHint ? 'animate-pulse ring-4 ring-yellow-300' : ''}`}
+                >
+                  <Lightbulb className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className="text-xs font-bold mt-1">提示</span>
+                  <span className="text-xs opacity-70">×{items.hint}</span>
+                </button>
+                
+                {/* 重置道具 */}
+                <button
+                  onClick={useRetry}
+                  disabled={items.retry <= 0}
+                  className={`flex flex-col items-center px-3 py-2 md:px-4 md:py-3 rounded-xl border-3 border-dark transition-all ${
+                    items.retry > 0 
+                      ? 'bg-purple-500 text-white hover:bg-purple-600 shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none' 
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <RefreshCw className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className="text-xs font-bold mt-1">重置</span>
+                  <span className="text-xs opacity-70">×{items.retry}</span>
+                </button>
+              </div>
+            )}
 
             {/* Visualizer */}
             <div className="flex-1 w-full border-4 border-dark shadow-neo rounded-3xl overflow-hidden bg-dark relative min-h-[200px] md:min-h-[300px]">
