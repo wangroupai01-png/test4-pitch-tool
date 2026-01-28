@@ -15,6 +15,7 @@ import { Achievements } from './pages/Achievements';
 import { DailyChallenge } from './pages/DailyChallenge';
 import { Review } from './pages/Review';
 import { Stats } from './pages/Stats';
+import { Friends } from './pages/Friends';
 import { TabLayout } from './components/layout/TabLayout';
 import { useUserStore } from './store/useUserStore';
 import { AchievementToast, registerAchievementCallback } from './components/game/AchievementToast';
@@ -101,6 +102,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/review" element={<Review />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/friends" element={<Friends />} />
           
           {/* Legacy Home - redirect to Learn */}
           <Route path="/home" element={<Home />} />

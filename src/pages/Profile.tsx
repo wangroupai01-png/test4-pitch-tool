@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Flame, Star, Settings, LogOut, ChevronRight, Award, TrendingUp, Sparkles } from 'lucide-react';
+import { User, Flame, Star, Settings, LogOut, ChevronRight, Award, TrendingUp, Sparkles, Users } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useUserStore } from '../store/useUserStore';
@@ -338,6 +338,7 @@ export const Profile = () => {
       {/* Menu Items */}
       <div className="space-y-3">
         {[
+          { icon: Users, label: '我的好友', color: 'text-secondary', onClick: () => navigate('/friends') },
           { icon: Award, label: '我的成就', color: 'text-yellow-500', onClick: () => navigate('/achievements') },
           { icon: TrendingUp, label: '能力分析', color: 'text-primary', onClick: () => navigate('/stats') },
           { icon: Settings, label: '设置', color: 'text-slate-500', onClick: () => navigate('/settings') },

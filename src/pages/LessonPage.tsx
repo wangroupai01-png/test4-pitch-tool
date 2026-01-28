@@ -35,15 +35,24 @@ interface Question {
   type: string;
   // 单音识别
   targetMidi?: number;
-  options?: number[];
+  options?: number[] | string[] | string[][];
   duration?: number;
   // 音程识别
   baseMidi?: number;
   intervalSemitones?: number;
+  interval?: number;  // 半音数
+  intervalName?: string;  // 音程名称
   answer?: string;
   // 和弦识别
   rootMidi?: number;
   chordType?: string;
+  // 旋律听写
+  notes?: number[];
+  // 视唱
+  startMidi?: number;
+  noteName?: string;
+  description?: string;
+  tolerance?: number;
 }
 
 // Sing 课程相关状态
@@ -213,23 +222,48 @@ export const LessonPage = () => {
         setTimeout(() => {
           playNote(secondFreq);
         }, 600); // 间隔 600ms 播放第二个音
-      } else if (currentQuestion.type === 'chord' && currentQuestion.rootMidi !== undefined && currentQuestion.chordType) {
-        // 和弦类型：同时播放三个音
+      } else if (currentQuestion.type === 'interval_identify' && currentQuestion.rootMidi !== undefined && currentQuestion.interval !== undefined) {
+        // 专业篇音程识别：使用 rootMidi 和 interval
+        const baseFreq = getFrequency(currentQuestion.rootMidi);
+        const secondFreq = getFrequency(currentQuestion.rootMidi + currentQuestion.interval);
+        
+        playNote(baseFreq);
+        setTimeout(() => {
+          playNote(secondFreq);
+        }, 600);
+      } else if ((currentQuestion.type === 'chord' || currentQuestion.type === 'chord_identify') && currentQuestion.rootMidi !== undefined && currentQuestion.chordType) {
+        // 和弦类型：同时播放和弦音
         const root = currentQuestion.rootMidi;
         let intervals: number[];
         
         switch (currentQuestion.chordType) {
           case 'major':
-            intervals = [0, 4, 7]; // 大三和弦: 根音 + 大三度 + 纯五度
+            intervals = [0, 4, 7]; // 大三和弦
             break;
           case 'minor':
-            intervals = [0, 3, 7]; // 小三和弦: 根音 + 小三度 + 纯五度
+            intervals = [0, 3, 7]; // 小三和弦
             break;
           case 'dim':
             intervals = [0, 3, 6]; // 减三和弦
             break;
           case 'aug':
             intervals = [0, 4, 8]; // 增三和弦
+            break;
+          // 七和弦类型
+          case 'maj7':
+            intervals = [0, 4, 7, 11]; // 大七和弦
+            break;
+          case 'min7':
+            intervals = [0, 3, 7, 10]; // 小七和弦
+            break;
+          case 'dom7':
+            intervals = [0, 4, 7, 10]; // 属七和弦
+            break;
+          case 'dim7':
+            intervals = [0, 3, 6, 9]; // 减七和弦
+            break;
+          case 'm7b5':
+            intervals = [0, 3, 6, 10]; // 半减七和弦
             break;
           default:
             intervals = [0, 4, 7];
@@ -238,6 +272,13 @@ export const LessonPage = () => {
         // 同时播放所有音符形成和弦
         intervals.forEach(interval => {
           playNote(getFrequency(root + interval));
+        });
+      } else if (currentQuestion.type === 'melody' && currentQuestion.notes) {
+        // 旋律听写：依次播放多个音符
+        currentQuestion.notes.forEach((midi, index) => {
+          setTimeout(() => {
+            playNote(getFrequency(midi), 0.6);
+          }, index * 500); // 每个音符间隔 500ms
         });
       } else if (currentQuestion.targetMidi !== undefined) {
         // 单音识别类型
@@ -412,12 +453,25 @@ export const LessonPage = () => {
     }, 1500);
   };
 
-  // 处理音程答案选择
+  // 处理音程/和弦/旋律答案选择
   const handleSelectIntervalAnswer = async (answer: string) => {
     if (showFeedback || !currentQuestion) return;
 
     setSelectedIntervalAnswer(answer);
-    const correct = answer === currentQuestion.answer;
+    
+    // 根据题目类型判断正确答案
+    let correctAnswer: string;
+    if (currentQuestion.type === 'interval_identify') {
+      correctAnswer = currentQuestion.intervalName || '';
+    } else if (currentQuestion.type === 'melody') {
+      // 旋律听写：第一个选项是正确答案
+      const firstOption = (currentQuestion.options as string[][])?.[0];
+      correctAnswer = firstOption?.join('-') || '';
+    } else {
+      correctAnswer = currentQuestion.answer || '';
+    }
+    
+    const correct = answer === correctAnswer;
     setIsCorrect(correct);
     setShowFeedback(true);
 
@@ -1065,7 +1119,9 @@ export const LessonPage = () => {
                 <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-accent/10 rounded-full border-3 border-dark/5" />
                 
                 <h2 className="text-2xl font-black text-dark mb-8 relative z-10">
-                  {currentQuestion.type === 'interval' ? '这是什么音程？' : '这是什么音？'}
+                  {currentQuestion.type === 'interval' || currentQuestion.type === 'interval_identify' ? '这是什么音程？' : 
+                   currentQuestion.type === 'chord' || currentQuestion.type === 'chord_identify' ? '这是什么和弦？' :
+                   currentQuestion.type === 'melody' ? '这是什么旋律？' : '这是什么音？'}
                 </h2>
                 
                 {/* Play Button */}
@@ -1083,11 +1139,16 @@ export const LessonPage = () => {
 
               {/* Options */}
               <div className="grid grid-cols-2 gap-4">
-                {currentQuestion.type === 'interval' ? (
-                  // 音程类型：文字选项
-                  (currentQuestion.options as unknown as string[])?.map((option: string) => {
+                {(currentQuestion.type === 'interval' || currentQuestion.type === 'interval_identify' || 
+                  currentQuestion.type === 'chord_identify') ? (
+                  // 音程/和弦类型：文字选项
+                  (currentQuestion.options as string[])?.map((option: string, index: number) => {
                     const isSelected = selectedIntervalAnswer === option;
-                    const isCorrectAnswer = option === currentQuestion.answer;
+                    // interval_identify 用 intervalName 作为正确答案
+                    const correctAnswer = currentQuestion.type === 'interval_identify' 
+                      ? currentQuestion.intervalName 
+                      : currentQuestion.answer;
+                    const isCorrectAnswer = option === correctAnswer;
                     
                     let bgColor = 'bg-white hover:bg-slate-50';
                     let borderColor = 'border-dark';
@@ -1106,7 +1167,7 @@ export const LessonPage = () => {
 
                     return (
                       <MotionButton
-                        key={option}
+                        key={`${option}-${index}`}
                         className={`
                           p-6 rounded-2xl font-black text-xl border-3 transition-all shadow-neo-sm
                           ${bgColor} ${borderColor} ${textColor}
@@ -1121,9 +1182,49 @@ export const LessonPage = () => {
                       </MotionButton>
                     );
                   })
+                ) : currentQuestion.type === 'melody' ? (
+                  // 旋律听写：显示音符序列选项
+                  (currentQuestion.options as string[][])?.map((noteSeq: string[], index: number) => {
+                    const optionStr = noteSeq.join('-');
+                    const isSelected = selectedIntervalAnswer === optionStr;
+                    // 第一个选项是正确答案
+                    const isCorrectAnswer = index === 0;
+                    
+                    let bgColor = 'bg-white hover:bg-slate-50';
+                    let borderColor = 'border-dark';
+                    let textColor = 'text-dark';
+                    
+                    if (showFeedback) {
+                      if (isCorrectAnswer) {
+                        bgColor = 'bg-secondary';
+                        textColor = 'text-white';
+                      } else if (isSelected && !isCorrectAnswer) {
+                        bgColor = 'bg-red-500';
+                        borderColor = 'border-red-700';
+                        textColor = 'text-white';
+                      }
+                    }
+
+                    return (
+                      <MotionButton
+                        key={optionStr}
+                        className={`
+                          p-4 rounded-2xl font-black text-lg border-3 transition-all shadow-neo-sm
+                          ${bgColor} ${borderColor} ${textColor}
+                          ${showFeedback ? 'cursor-default' : 'cursor-pointer'}
+                        `}
+                        whileHover={!showFeedback ? { scale: 1.02, y: -2, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' } : {}}
+                        whileTap={!showFeedback ? { scale: 0.98, y: 0, boxShadow: '0px 0px 0px 0px rgba(0,0,0,1)' } : {}}
+                        onClick={() => handleSelectIntervalAnswer(optionStr)}
+                        disabled={showFeedback}
+                      >
+                        {noteSeq.join(' → ')}
+                      </MotionButton>
+                    );
+                  })
                 ) : (
                   // 单音识别类型：MIDI 选项
-                  currentQuestion.options?.map((midi) => {
+                  (currentQuestion.options as number[])?.map((midi: number) => {
                     const isSelected = selectedAnswer === midi;
                     const isCorrectAnswer = midi === currentQuestion.targetMidi;
                     
@@ -1175,6 +1276,12 @@ export const LessonPage = () => {
                         ? '正确！🎉' 
                         : currentQuestion.type === 'interval'
                           ? `错误，正确答案是 ${currentQuestion.answer}`
+                          : currentQuestion.type === 'interval_identify'
+                          ? `错误，正确答案是 ${currentQuestion.intervalName}`
+                          : currentQuestion.type === 'chord_identify'
+                          ? `错误，正确答案是 ${(currentQuestion.options as string[])?.[0]}`
+                          : currentQuestion.type === 'melody'
+                          ? `错误，正确答案是 ${(currentQuestion.options as string[][])?.[0]?.join(' → ')}`
                           : `错误，正确答案是 ${getMidiNoteName(currentQuestion.targetMidi!)}`
                       }
                     </p>
