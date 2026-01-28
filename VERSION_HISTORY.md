@@ -26,21 +26,27 @@ git push origin master --force
 
 ## 版本列表
 
-### v2.4-practice-enhance (2026-01-28) - 待验收
-**状态**: ⏳ 待用户验收
+### v2.4-practice-enhance (2026-01-28)
+**状态**: ✅ 验收通过
 
 **新增功能**:
 - 🎤 **录音回放**: 自由哼唱模式可录制并回放声音
 - 🎯 **目标音辅助线**: 可视化器中显示目标音参考线
 - 🛠️ **技能道具**: 哼唱闯关新增跳过/提示/重置道具
 - 📋 **协作规范**: 开发规则文档和项目状态总览
+- 🧪 **测试技能**: 自动化网站功能测试 Skill
+
+**修复问题**:
+- 🐛 修复录音回放时长始终显示为 0 的 bug
+- 🐛 修复多个 TypeScript 类型定义错误
 
 **修改文件**:
-- `src/pages/FreeMode.tsx` - 录音功能、目标音UI
+- `src/pages/FreeMode.tsx` - 录音功能、目标音UI、时长修复
 - `src/pages/SingMode.tsx` - 道具系统
+- `src/pages/LessonPage.tsx` - 类型定义修复
 - `src/hooks/usePitchDetector.ts` - 暴露 mediaStream
-- `.cursor/rules/development-workflow.mdc` - 开发规范
-- `PROJECT_STATUS.md` - 项目状态总览
+- `.cursor/rules/development-workflow.mdc` - 开发规范 + 自动化测试
+- `.cursor/skills/test-melody-webapp/` - 测试技能
 
 **回滚命令**:
 ```powershell
