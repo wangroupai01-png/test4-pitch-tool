@@ -26,8 +26,8 @@ git push origin master --force
 
 ## 版本列表
 
-### v2.5-social-advanced (2026-01-28) - 待验收
-**状态**: ⏳ 待用户验收
+### v2.5-social-advanced (2026-01-28)
+**状态**: ✅ 验收通过
 
 **新增功能**:
 - 👥 **好友系统**: 搜索添加好友、接受/拒绝请求、好友列表
@@ -37,18 +37,28 @@ git push origin master --force
 - 📝 **旋律听写**: 3-5音符短旋律听记练习
 - 🎤 **专业视唱**: 大跳音程、变化音演唱训练
 
+**修复问题**:
+- 🐛 修复技能详情页和成就页 header 层级问题（滚动时被内容遮挡）
+- 🐛 优化头像上传错误提示，添加详细错误信息
+- 📄 新增 Storage RLS 配置脚本
+
 **修改文件**:
 - `src/pages/Friends.tsx` - 好友系统页面（新建）
 - `src/pages/Profile.tsx` - 添加好友入口
 - `src/pages/LessonPage.tsx` - 扩展课程类型支持
+- `src/pages/SkillDetail.tsx` - 修复 header z-index
+- `src/pages/Achievements.tsx` - 修复 header z-index
+- `src/pages/Settings.tsx` - 优化头像上传错误提示
 - `src/App.tsx` - 新增路由
 - `src/lib/add-friends-system.sql` - 好友系统数据库
 - `src/lib/add-advanced-skills.sql` - 专业课程数据
+- `src/lib/setup-storage.sql` - Storage RLS 配置（新建）
 
 **数据库更新**:
 需要运行以下 SQL:
 - `src/lib/add-friends-system.sql`
 - `src/lib/add-advanced-skills.sql`
+- `src/lib/setup-storage.sql` (在创建 avatars bucket 后运行)
 
 **回滚命令**:
 ```powershell
@@ -209,4 +219,4 @@ git checkout v1.0-stable
 
 ---
 
-*最后更新: 2026-01-26*
+*最后更新: 2026-01-30*

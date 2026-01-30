@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { UserButton } from '../components/auth/UserButton';
 import { ShareButton } from '../components/ui/ShareButton';
 import { Leaderboard } from '../components/game/Leaderboard';
+import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ export const Home = () => {
         </div>
         
         <div className="flex items-center gap-2 md:gap-3">
+          <InstrumentSelector />
           <ShareButton />
           <UserButton />
         </div>

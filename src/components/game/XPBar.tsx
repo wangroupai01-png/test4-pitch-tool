@@ -5,6 +5,7 @@ import { Flame, Star } from 'lucide-react';
 const MotionDiv = motion.div as any;
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
+import { InstrumentSelector } from '../ui/InstrumentSelector';
 
 interface XPData {
   totalXp: number;
@@ -126,6 +127,9 @@ export const XPBar = () => {
             <span>{xpData.streak}</span>
           </MotionDiv>
         )}
+
+        {/* 乐器选择器 */}
+        <InstrumentSelector compact />
       </div>
     </div>
   );

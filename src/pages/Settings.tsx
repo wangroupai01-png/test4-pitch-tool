@@ -1,11 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, Check, X, Upload } from 'lucide-react';
+import { ArrowLeft, User, Check, X, Upload, Volume2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
+import { 
+  INSTRUMENTS, 
+  type InstrumentId, 
+  getCurrentInstrument, 
+  setCurrentInstrument, 
+  preloadInstrument 
+} from '../hooks/useAudioPlayer';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -43,6 +51,7 @@ export const Settings = () => {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useUserStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { playNote } = useAudioPlayer();
   
   const [username, setUsername] = useState(profile?.username || '');
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(
@@ -58,6 +67,64 @@ export const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedInstrument, setSelectedInstrument] = useState<InstrumentId>(getCurrentInstrument());
+  const [loadingInstrument, setLoadingInstrument] = useState<InstrumentId | null>(null);
+
+  // 从本地存储加载乐器偏好
+  useEffect(() => {
+    const savedInstrument = localStorage.getItem('preferredInstrument') as InstrumentId | null;
+    if (savedInstrument && INSTRUMENTS[savedInstrument]) {
+      setSelectedInstrument(savedInstrument);
+      setCurrentInstrument(savedInstrument);
+    }
+  }, []);
+
+  // 按类别分组乐器
+  const instrumentsByCategory = Object.entries(INSTRUMENTS).reduce((acc, [id, info]) => {
+    if (!acc[info.category]) {
+      acc[info.category] = [];
+    }
+    acc[info.category].push({ id: id as InstrumentId, ...info });
+    return acc;
+  }, {} as Record<string, { id: InstrumentId; name: string; icon: string; category: string }[]>);
+
+  // 试听乐器 - 播放动听的分解和弦旋律
+  const handlePreviewInstrument = async (instrumentId: InstrumentId) => {
+    setLoadingInstrument(instrumentId);
+    try {
+      // 先完成预加载
+      await preloadInstrument(instrumentId);
+      
+      // 播放 C-E-G-高C 分解大三和弦
+      const melody = [
+        { freq: 261.63, delay: 0 },      // C4
+        { freq: 329.63, delay: 400 },    // E4
+        { freq: 392.00, delay: 800 },    // G4
+        { freq: 523.25, delay: 1200 },   // C5
+      ];
+      
+      for (const note of melody) {
+        setTimeout(() => {
+          playNote(note.freq, 0.8, undefined, instrumentId);
+        }, note.delay);
+      }
+      
+      // 等待旋律播放完成
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } finally {
+      setLoadingInstrument(null);
+    }
+  };
+
+  // 选择乐器
+  const handleSelectInstrument = async (instrumentId: InstrumentId) => {
+    setSelectedInstrument(instrumentId);
+    setCurrentInstrument(instrumentId);
+    localStorage.setItem('preferredInstrument', instrumentId);
+    
+    // 预加载所选乐器的音色
+    await preloadInstrument(instrumentId);
+  };
 
   if (!user) {
     navigate('/profile');
@@ -329,6 +396,68 @@ export const Settings = () => {
             className="w-full px-4 py-3 rounded-xl border-3 border-dark font-bold text-dark placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           />
           <p className="text-sm text-slate-400 mt-2 font-medium">最多20个字符</p>
+        </Card>
+
+        {/* 乐器音色选择 */}
+        <Card className="!p-6">
+          <h2 className="font-black text-lg text-dark mb-2">🎹 乐器音色</h2>
+          <p className="text-sm text-slate-500 mb-4">选择你喜欢的乐器音色，点击试听预览</p>
+          
+          {Object.entries(instrumentsByCategory).map(([category, instruments]) => (
+            <div key={category} className="mb-4 last:mb-0">
+              <h3 className="text-sm font-bold text-slate-400 mb-2">{category}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {instruments.map((instrument) => (
+                  <MotionButton
+                    key={instrument.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelectInstrument(instrument.id)}
+                    className={`
+                      p-3 rounded-xl border-2 text-left transition-all flex items-center gap-2
+                      ${selectedInstrument === instrument.id
+                        ? 'border-primary bg-primary/10 shadow-neo-sm'
+                        : 'border-dark hover:bg-slate-50'
+                      }
+                    `}
+                  >
+                    <span className="text-xl">{instrument.icon}</span>
+                    <span className="font-bold text-sm flex-1">{instrument.name}</span>
+                    {selectedInstrument === instrument.id && (
+                      <Check className="w-4 h-4 text-primary" />
+                    )}
+                  </MotionButton>
+                ))}
+              </div>
+            </div>
+          ))}
+          
+          {/* 试听按钮 */}
+          <div className="mt-4 pt-4 border-t-2 border-slate-200">
+            <Button
+              variant="secondary"
+              onClick={() => handlePreviewInstrument(selectedInstrument)}
+              disabled={loadingInstrument !== null}
+              className="flex items-center gap-2"
+            >
+              {loadingInstrument ? (
+                <>
+                  <MotionDiv
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                  />
+                  加载中...
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4" />
+                  试听 {INSTRUMENTS[selectedInstrument].name}
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-slate-400 mt-2">音色会自动保存，下次打开自动加载</p>
+          </div>
         </Card>
 
         {/* 保存按钮 */}

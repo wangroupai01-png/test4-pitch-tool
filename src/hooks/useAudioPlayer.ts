@@ -11,8 +11,41 @@ const getAudioContext = (): AudioContext => {
   return globalAudioContext;
 };
 
-// Cache for loaded audio buffers
-const audioBufferCache: Map<number, AudioBuffer> = new Map();
+// 可用乐器列表
+export const INSTRUMENTS = {
+  acoustic_grand_piano: { name: '钢琴', icon: '🎹', category: '键盘' },
+  acoustic_guitar_nylon: { name: '古典吉他', icon: '🎸', category: '弦乐' },
+  acoustic_guitar_steel: { name: '民谣吉他', icon: '🎸', category: '弦乐' },
+  electric_guitar_clean: { name: '电吉他', icon: '🎸', category: '弦乐' },
+  violin: { name: '小提琴', icon: '🎻', category: '弦乐' },
+  cello: { name: '大提琴', icon: '🎻', category: '弦乐' },
+  flute: { name: '长笛', icon: '🎵', category: '管乐' },
+  clarinet: { name: '单簧管', icon: '🎵', category: '管乐' },
+  soprano_sax: { name: '萨克斯', icon: '🎷', category: '管乐' },
+  trumpet: { name: '小号', icon: '🎺', category: '铜管' },
+  trombone: { name: '长号', icon: '🎺', category: '铜管' },
+  vibraphone: { name: '颤音琴', icon: '🎶', category: '打击' },
+  marimba: { name: '马林巴', icon: '🥁', category: '打击' },
+  xylophone: { name: '木琴', icon: '🎶', category: '打击' },
+  music_box: { name: '音乐盒', icon: '🎵', category: '特殊' },
+  celesta: { name: '钢片琴', icon: '🔔', category: '特殊' },
+} as const;
+
+export type InstrumentId = keyof typeof INSTRUMENTS;
+
+// 默认乐器
+let currentInstrument: InstrumentId = 'acoustic_grand_piano';
+
+// 获取当前乐器
+export const getCurrentInstrument = () => currentInstrument;
+
+// 设置当前乐器
+export const setCurrentInstrument = (instrument: InstrumentId) => {
+  currentInstrument = instrument;
+};
+
+// Cache for loaded audio buffers - 按乐器分类
+const audioBufferCache: Map<string, AudioBuffer> = new Map();
 
 // Note names for MIDI to note conversion
 const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -24,52 +57,59 @@ const midiToNoteName = (midi: number): string => {
   return `${NOTE_NAMES[noteIndex]}${octave}`;
 };
 
-// Piano soundfont URL (using free Salamander Grand Piano samples)
-const SOUNDFONT_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/';
+// Soundfont URL base (FluidR3_GM supports multiple instruments)
+const SOUNDFONT_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
 
-// Load a piano sample for a given MIDI note
-const loadPianoSample = async (midi: number): Promise<AudioBuffer | null> => {
+// Load a sample for a given MIDI note and instrument
+const loadInstrumentSample = async (midi: number, instrument: InstrumentId = currentInstrument): Promise<AudioBuffer | null> => {
+  const cacheKey = `${instrument}:${midi}`;
+  
   // Check cache first
-  if (audioBufferCache.has(midi)) {
-    return audioBufferCache.get(midi)!;
+  if (audioBufferCache.has(cacheKey)) {
+    return audioBufferCache.get(cacheKey)!;
   }
 
-  // Clamp to valid piano range
+  // Clamp to valid range
   const clampedMidi = Math.max(21, Math.min(108, midi)); // A0 to C8
   const noteName = midiToNoteName(clampedMidi);
-  const url = `${SOUNDFONT_BASE}${noteName}.mp3`;
+  const url = `${SOUNDFONT_BASE}${instrument}-mp3/${noteName}.mp3`;
 
   try {
     const ctx = getAudioContext();
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Failed to load piano sample for ${noteName}`);
+      console.warn(`Failed to load ${instrument} sample for ${noteName}`);
       return null;
     }
     const arrayBuffer = await response.arrayBuffer();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     
     // Cache the loaded buffer
-    audioBufferCache.set(midi, audioBuffer);
+    audioBufferCache.set(cacheKey, audioBuffer);
     return audioBuffer;
   } catch (error) {
-    console.warn(`Error loading piano sample for ${noteName}:`, error);
+    console.warn(`Error loading ${instrument} sample for ${noteName}:`, error);
     return null;
   }
 };
 
-// Preload common notes
-const preloadCommonNotes = async () => {
+// Preload common notes for an instrument
+const preloadCommonNotes = async (instrument: InstrumentId = 'acoustic_grand_piano') => {
   // Preload C3 to C6 (most commonly used range)
   const notesToPreload = [];
   for (let midi = 48; midi <= 84; midi++) {
-    notesToPreload.push(loadPianoSample(midi));
+    notesToPreload.push(loadInstrumentSample(midi, instrument));
   }
   await Promise.all(notesToPreload);
 };
 
-// Start preloading when module loads
-preloadCommonNotes();
+// Preload function for switching instruments
+export const preloadInstrument = async (instrument: InstrumentId) => {
+  await preloadCommonNotes(instrument);
+};
+
+// Start preloading default piano when module loads
+preloadCommonNotes('acoustic_grand_piano');
 
 interface ActiveNote {
   source: AudioBufferSourceNode;
@@ -106,7 +146,7 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  const playNote = useCallback(async (frequency: number, duration: number = 1.5, _type?: OscillatorType) => {
+  const playNote = useCallback(async (frequency: number, duration: number = 1.5, _type?: OscillatorType, instrument?: InstrumentId) => {
     // Stop any currently playing note first
     stopCurrentNote();
 
@@ -120,8 +160,8 @@ export const useAudioPlayer = () => {
     // Convert frequency to MIDI note number
     const midi = Math.round(12 * Math.log2(frequency / 440) + 69);
     
-    // Try to load the piano sample
-    const buffer = await loadPianoSample(midi);
+    // Try to load the instrument sample (use passed instrument or current global setting)
+    const buffer = await loadInstrumentSample(midi, instrument || currentInstrument);
     
     if (!buffer) {
       // Fallback to simple sine wave if sample fails to load
@@ -129,7 +169,7 @@ export const useAudioPlayer = () => {
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(frequency, ctx.currentTime);
-      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.setValueAtTime(1.5, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -138,7 +178,7 @@ export const useAudioPlayer = () => {
       return;
     }
 
-    // Play the sampled piano note
+    // Play the sampled note
     const source = ctx.createBufferSource();
     const gainNode = ctx.createGain();
     
@@ -146,12 +186,13 @@ export const useAudioPlayer = () => {
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
     
-    // Set initial volume
-    gainNode.gain.setValueAtTime(0.8, ctx.currentTime);
+    // Set initial volume (increased for better audibility)
+    const volume = 2.0;
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
     
     // Natural decay - let the sample play, then fade out
     const fadeOutStart = ctx.currentTime + duration - 0.3;
-    gainNode.gain.setValueAtTime(0.8, fadeOutStart);
+    gainNode.gain.setValueAtTime(volume, fadeOutStart);
     gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
     
     source.start(0);

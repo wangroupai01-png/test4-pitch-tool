@@ -13,6 +13,7 @@ import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
 
 import { ShareButton } from '../components/ui/ShareButton';
+import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 const MotionDiv = motion.div as any;
 
@@ -394,6 +395,8 @@ export const SingMode = () => {
           </Button>
         </Link>
         <div className="flex gap-2 md:gap-4 items-center">
+            {/* 乐器选择器 */}
+            <InstrumentSelector compact />
             {/* 生命值 */}
             {gameState !== 'intro' && gameState !== 'gameover' && (
               <Card className="!p-2 md:!p-3 !py-1 md:!py-2 flex items-center gap-1 bg-white">

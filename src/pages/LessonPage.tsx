@@ -14,6 +14,7 @@ import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementCh
 import { showLevelUpToast } from '../components/game/LevelUpToast';
 import { updateReviewSchedule } from '../utils/reviewService';
 import { clearLearnCache } from './Learn';
+import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 interface Lesson {
   id: string;
@@ -912,6 +913,8 @@ export const LessonPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* 乐器选择器 */}
+          <InstrumentSelector compact />
           {/* 限时模式计时器 */}
           {timeLeft !== null && (
             <div className={`px-3 py-1 font-black rounded-lg border-2 border-dark shadow-neo-sm flex items-center gap-1 ${
