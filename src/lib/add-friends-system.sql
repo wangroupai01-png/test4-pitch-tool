@@ -58,7 +58,12 @@ ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friend_pk_matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pk_stats ENABLE ROW LEVEL SECURITY;
 
--- 6. friendships 表策略
+-- 6. friendships 表策略（先删除已存在的策略）
+DROP POLICY IF EXISTS "Users can view own friendships" ON friendships;
+DROP POLICY IF EXISTS "Users can send friend requests" ON friendships;
+DROP POLICY IF EXISTS "Users can update own friendships" ON friendships;
+DROP POLICY IF EXISTS "Users can delete own friendships" ON friendships;
+
 -- 用户可以查看自己相关的好友关系
 CREATE POLICY "Users can view own friendships"
   ON friendships FOR SELECT
@@ -79,7 +84,11 @@ CREATE POLICY "Users can delete own friendships"
   ON friendships FOR DELETE
   USING (auth.uid() = user_id OR auth.uid() = friend_id);
 
--- 7. friend_pk_matches 表策略
+-- 7. friend_pk_matches 表策略（先删除已存在的策略）
+DROP POLICY IF EXISTS "Users can view own pk matches" ON friend_pk_matches;
+DROP POLICY IF EXISTS "Users can create pk challenges" ON friend_pk_matches;
+DROP POLICY IF EXISTS "Users can update own pk matches" ON friend_pk_matches;
+
 CREATE POLICY "Users can view own pk matches"
   ON friend_pk_matches FOR SELECT
   USING (auth.uid() = challenger_id OR auth.uid() = opponent_id);
@@ -92,7 +101,11 @@ CREATE POLICY "Users can update own pk matches"
   ON friend_pk_matches FOR UPDATE
   USING (auth.uid() = challenger_id OR auth.uid() = opponent_id);
 
--- 8. pk_stats 表策略
+-- 8. pk_stats 表策略（先删除已存在的策略）
+DROP POLICY IF EXISTS "PK stats are viewable by everyone" ON pk_stats;
+DROP POLICY IF EXISTS "Users can insert own pk stats" ON pk_stats;
+DROP POLICY IF EXISTS "Users can update own pk stats" ON pk_stats;
+
 CREATE POLICY "PK stats are viewable by everyone"
   ON pk_stats FOR SELECT
   USING (true);
@@ -105,7 +118,19 @@ CREATE POLICY "Users can update own pk stats"
   ON pk_stats FOR UPDATE
   USING (auth.uid() = user_id);
 
--- 9. 触发器: 自动更新 updated_at
+-- 9. 创建 updated_at 自动更新函数（如果不存在）
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 10. 触发器: 自动更新 updated_at（先删除已存在的触发器）
+DROP TRIGGER IF EXISTS update_friendships_updated_at ON friendships;
+DROP TRIGGER IF EXISTS update_pk_stats_updated_at ON pk_stats;
+
 CREATE TRIGGER update_friendships_updated_at
   BEFORE UPDATE ON friendships
   FOR EACH ROW
@@ -116,7 +141,7 @@ CREATE TRIGGER update_pk_stats_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- 10. 搜索用户的函数（根据用户名或邮箱模糊搜索）
+-- 11. 搜索用户的函数（根据用户名或邮箱模糊搜索）
 CREATE OR REPLACE FUNCTION search_users(search_term TEXT, current_user_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -147,7 +172,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 11. 获取好友列表的函数
+-- 12. 获取好友列表的函数
 CREATE OR REPLACE FUNCTION get_friends_list(current_user_id UUID)
 RETURNS TABLE (
   friend_id UUID,

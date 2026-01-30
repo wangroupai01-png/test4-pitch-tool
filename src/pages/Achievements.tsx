@@ -106,7 +106,7 @@ export const Achievements = () => {
   return (
     <div className="min-h-screen bg-light-bg pattern-grid-lg">
       {/* Header */}
-      <header className="bg-white border-b-3 border-dark p-4 sticky top-0 z-10 shadow-neo-sm">
+      <header className="bg-white border-b-3 border-dark p-4 sticky top-0 z-50 shadow-neo-sm">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <Link to="/profile">
             <MotionDiv 

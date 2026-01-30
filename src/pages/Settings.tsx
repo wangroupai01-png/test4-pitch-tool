@@ -136,7 +136,14 @@ export const Settings = () => {
       
       if (uploadError) {
         console.error('[Settings] Upload error:', uploadError);
-        setMessage({ type: 'error', text: '上传失败，请重试' });
+        // 显示更详细的错误信息
+        if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+          setMessage({ type: 'error', text: '存储服务未配置，请联系管理员' });
+        } else if (uploadError.message?.includes('policy')) {
+          setMessage({ type: 'error', text: '没有上传权限，请重新登录' });
+        } else {
+          setMessage({ type: 'error', text: `上传失败: ${uploadError.message || '请重试'}` });
+        }
         return;
       }
       

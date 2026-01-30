@@ -196,7 +196,7 @@ export const SkillDetail = () => {
   return (
     <div className="min-h-screen bg-light-bg pattern-grid-lg">
       {/* Header - Neo-Brutalism Style */}
-      <header className="bg-white border-b-3 border-dark p-4 sticky top-0 z-10 shadow-neo-sm">
+      <header className="bg-white border-b-3 border-dark p-4 sticky top-0 z-50 shadow-neo-sm">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <Link to="/learn">
             <MotionDiv 
@@ -224,7 +224,7 @@ export const SkillDetail = () => {
             {/* Decorative element */}
             <div className="absolute -top-4 -right-4 w-20 h-20 bg-secondary/20 rounded-full border-3 border-dark/10" />
             
-            <div className="relative z-10">
+            <div className="relative">
               <p className="text-slate-600 font-medium text-lg">{skill.description}</p>
               
               {/* Progress */}

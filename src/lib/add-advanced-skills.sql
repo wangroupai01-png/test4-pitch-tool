@@ -17,7 +17,7 @@ VALUES (
   'advanced',
   '🎼',
   40,
-  'interval_advanced',  -- 依赖进阶音程
+  NULL,  -- 暂无前置依赖
   200
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -30,7 +30,7 @@ VALUES (
   'advanced',
   '🎹',
   41,
-  'chord_basics',  -- 依赖和弦入门
+  NULL,  -- 暂无前置依赖
   200
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -43,7 +43,7 @@ VALUES (
   'advanced',
   '📝',
   42,
-  'complex_intervals',
+  'complex_intervals',  -- 依赖复杂音程（本文件中定义）
   250
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -56,7 +56,7 @@ VALUES (
   'advanced',
   '🎤',
   43,
-  'pitch_advanced',  -- 依赖音准精修
+  'seventh_chords',  -- 依赖七和弦（本文件中定义）
   250
 ) ON CONFLICT (id) DO NOTHING;
 
