@@ -26,6 +26,39 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.6-instruments-analytics (2026-01-30)
+**状态**: ✅ 验收通过
+
+**新增功能**:
+- 🎹 **多乐器音色**: 16种乐器可选（钢琴、吉他、小提琴、长笛、萨克斯等）
+- 🎵 **全局乐器选择器**: 经验条右侧显示，点击切换乐器
+- 🎶 **动听试听旋律**: C-E-G-高C 分解大三和弦
+- 📊 **能力分析增强**: 新增音符热力图、薄弱点分析、30天趋势图
+- 📈 **三标签页设计**: 总览、音符热力图、进步趋势
+
+**优化改进**:
+- 🔊 大幅提升乐器音量（提升150%）
+- ⚡ 优化乐器加载逻辑，先预加载再播放避免卡顿
+- 💾 乐器偏好自动保存到本地
+
+**修改文件**:
+- `src/hooks/useAudioPlayer.ts` - 多乐器支持
+- `src/components/ui/InstrumentSelector.tsx` - 乐器选择器组件（新建）
+- `src/components/game/XPBar.tsx` - 集成乐器选择器
+- `src/pages/Stats.tsx` - 能力分析增强
+- `src/pages/Settings.tsx` - 乐器设置
+- 多个页面添加乐器选择器
+
+**数据库更新**（可选）:
+- `src/lib/add-note-stats.sql` - 音符统计表
+
+**回滚命令**:
+```powershell
+git checkout v2.5-social-advanced
+```
+
+---
+
 ### v2.5-social-advanced (2026-01-28)
 **状态**: ✅ 验收通过
 
@@ -219,4 +252,4 @@ git checkout v1.0-stable
 
 ---
 
-*最后更新: 2026-01-30*
+*最后更新: 2026-01-30 v2.6*
