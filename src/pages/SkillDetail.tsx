@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, Lock, CheckCircle, Star, Sparkles, Clock } from 'lucide-react';
@@ -46,13 +46,7 @@ export const SkillDetail = () => {
   const [lessonProgress, setLessonProgress] = useState<Map<string, LessonProgress>>(new Map());
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (skillId) {
-      loadSkillData();
-    }
-  }, [skillId, user]);
-
-  const loadSkillData = async () => {
+  const loadSkillData = useCallback(async () => {
     setLoading(true);
     try {
       // 加载技能信息
@@ -113,7 +107,45 @@ export const SkillDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [skillId, user]);
+
+  // 刷新所有数据
+  const refreshData = useCallback(() => {
+    if (skillId) {
+      console.log('[SkillDetail] Refreshing data...');
+      loadSkillData();
+    }
+  }, [skillId, loadSkillData]);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // 监听页面可见性变化，当用户返回页面时刷新数据
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[SkillDetail] Page became visible, refreshing...');
+        refreshData();
+      }
+    };
+
+    // 监听 popstate 事件（用户点击返回按钮）
+    const handlePopState = () => {
+      console.log('[SkillDetail] PopState triggered, refreshing...');
+      refreshData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('focus', refreshData);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('focus', refreshData);
+    };
+  }, [refreshData]);
 
   const getLessonStatus = (lesson: Lesson, index: number): 'locked' | 'unlocked' | 'completed' => {
     const progress = lessonProgress.get(lesson.id);
@@ -197,8 +229,9 @@ export const SkillDetail = () => {
   return (
     <div className="min-h-screen bg-light-bg pattern-grid-lg">
       {/* Header - Neo-Brutalism Style */}
-      <header className="bg-white border-b-3 border-dark p-4 sticky top-0 z-50 shadow-neo-sm">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+      <header className="bg-white border-b-3 border-dark sticky top-[52px] z-40 shadow-neo-sm">
+        {/* 标题栏 */}
+        <div className="max-w-2xl mx-auto flex items-center gap-4 p-4">
           <Link to="/learn">
             <MotionDiv 
               whileHover={{ scale: 1.1, rotate: -5 }}

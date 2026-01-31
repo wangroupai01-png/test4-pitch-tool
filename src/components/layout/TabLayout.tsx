@@ -2,7 +2,6 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { BookOpen, Dumbbell, Trophy, User } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { XPBar } from '../game/XPBar';
 
 const MotionDiv = motion.div as any;
 
@@ -16,12 +15,7 @@ const tabs = [
 export const TabLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-light-bg flex flex-col pattern-grid-lg">
-      {/* XP Progress Bar - Fixed at top */}
-      <div className="sticky top-0 z-40 w-full">
-        <XPBar />
-      </div>
-      
-      {/* Main Content */}
+      {/* Main Content - XPBar 已移到全局 */}
       <main className="flex-1 overflow-auto pb-40">
         <Outlet />
       </main>

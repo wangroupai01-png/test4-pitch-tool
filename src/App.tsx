@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Home } from './pages/Home';
+import { Onboarding } from './pages/Onboarding';
 import { FreeMode } from './pages/FreeMode';
 import { QuizMode } from './pages/QuizMode';
 import { SingMode } from './pages/SingMode';
@@ -20,6 +21,7 @@ import { TabLayout } from './components/layout/TabLayout';
 import { useUserStore } from './store/useUserStore';
 import { AchievementToast, registerAchievementCallback } from './components/game/AchievementToast';
 import { LevelUpToast, registerLevelUpCallback } from './components/game/LevelUpToast';
+import { XPBar } from './components/game/XPBar';
 
 interface Achievement {
   id: string;
@@ -28,6 +30,18 @@ interface Achievement {
   icon: string;
   xp_reward: number;
 }
+
+// 全局 XPBar 包装组件 - 在除了 onboarding 之外的所有页面显示
+const GlobalXPBar = () => {
+  const location = useLocation();
+  
+  // 不在 onboarding 页面显示 XPBar
+  if (location.pathname === '/onboarding') {
+    return null;
+  }
+  
+  return <XPBar />;
+};
 
 function App() {
   const initialize = useUserStore((state) => state.initialize);
@@ -82,6 +96,10 @@ function App() {
           newLevel={levelUpLevel} 
           onClose={() => setLevelUpLevel(null)}
         />
+        
+        {/* 全局经验条 - 在所有页面顶部显示 */}
+        <GlobalXPBar />
+        
         <Routes>
           {/* Tab Layout Routes */}
           <Route element={<TabLayout />}>
@@ -103,6 +121,7 @@ function App() {
           <Route path="/review" element={<Review />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/friends" element={<Friends />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           
           {/* Legacy Home - redirect to Learn */}
           <Route path="/home" element={<Home />} />

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -10,6 +11,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +34,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           setError(result.error);
         } else {
           onClose();
+          // 如果需要引导，跳转到引导页面
+          if (result.needsOnboarding) {
+            navigate('/onboarding');
+          }
         }
       } else {
         if (!username.trim()) {
