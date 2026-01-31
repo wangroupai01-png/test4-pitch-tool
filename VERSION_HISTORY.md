@@ -26,6 +26,40 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.7-onboarding (2026-01-28)
+**状态**: ✅ 验收通过
+
+**新增功能**:
+- 🎯 **新用户引导系统**: 多步骤引导流程，包含能力测试和目标设定
+- 📊 **能力测试定级**: 5道题测试，自动匹配 beginner/intermediate/advanced
+- 🎯 **每日目标设定**: 5/10/15/20分钟可选
+- 🏷️ **全局经验条**: 所有页面顶部显示，登录用户显示等级/XP/连续天数
+- 👤 **游客引导登录**: 游客看到灰色等级徽章和登录按钮
+
+**优化改进**:
+- 🔄 **智能引导判断**: 老用户/已引导游客自动跳过
+- 💾 **游客引导同步**: 游客完成引导后登录自动同步数据
+- ⚡ **数据自动刷新**: 页面可见性变化时自动刷新XP和进度
+
+**数据库更新**:
+需运行: `src/lib/add-onboarding.sql`
+
+**修改文件**:
+- `src/pages/Onboarding.tsx` - 引导流程页面（新建）
+- `src/lib/add-onboarding.sql` - 引导系统数据库（新建）
+- `src/App.tsx` - 全局经验条、引导路由
+- `src/components/game/XPBar.tsx` - 游客显示、登录按钮
+- `src/components/auth/AuthModal.tsx` - 引导跳转
+- `src/store/useUserStore.ts` - 引导状态管理
+- `src/pages/SkillDetail.tsx` - 数据刷新优化
+
+**回滚命令**:
+```powershell
+git checkout v2.7-onboarding
+```
+
+---
+
 ### v2.6-instruments-analytics (2026-01-30)
 **状态**: ✅ 验收通过
 
