@@ -246,8 +246,8 @@ export const Settings = () => {
     setMessage({ type: 'success', text: '正在压缩图片...' });
     
     try {
-      // 压缩图片到 300x300，质量 0.8
-      const compressedBlob = await compressImage(file, 300, 0.8);
+      // 压缩图片到 200x200，质量 0.7（进一步减小体积，加快上传）
+      const compressedBlob = await compressImage(file, 200, 0.7);
       
       setMessage({ type: 'success', text: '正在上传...' });
       

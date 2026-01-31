@@ -34,7 +34,43 @@ interface CacheData {
 
 // 全局缓存（组件外部，页面切换时保留）
 let globalCache: CacheData | null = null;
-const CACHE_DURATION = 30 * 1000; // 30秒缓存（加快数据更新）
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存（减少网络请求）
+
+// 从 localStorage 加载持久化缓存
+const loadPersistentCache = (): CacheData | null => {
+  try {
+    const cached = localStorage.getItem('learn_cache');
+    if (cached) {
+      const data = JSON.parse(cached);
+      // 重建 Map 对象
+      data.lessonCounts = new Map(data.lessonCounts);
+      data.skillProgress = new Map(data.skillProgress);
+      return data;
+    }
+  } catch (e) {
+    console.warn('[Learn] Failed to load cache:', e);
+  }
+  return null;
+};
+
+// 保存到 localStorage
+const savePersistentCache = (cache: CacheData) => {
+  try {
+    const data = {
+      ...cache,
+      lessonCounts: Array.from(cache.lessonCounts.entries()),
+      skillProgress: Array.from(cache.skillProgress.entries()),
+    };
+    localStorage.setItem('learn_cache', JSON.stringify(data));
+  } catch (e) {
+    console.warn('[Learn] Failed to save cache:', e);
+  }
+};
+
+// 初始化时尝试从 localStorage 加载
+if (!globalCache) {
+  globalCache = loadPersistentCache();
+}
 
 // 清除缓存的函数（供其他组件调用）
 export const clearLearnCache = () => {
@@ -103,6 +139,8 @@ export const Learn = () => {
       timestamp: Date.now(),
       userId: user?.id || null,
     };
+    // 同时保存到 localStorage
+    savePersistentCache(globalCache);
   }, [user]);
 
   const loadSkillTree = async (forceRefresh = false) => {
@@ -263,12 +301,33 @@ export const Learn = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <MotionDiv
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
-        />
+      <div className="p-4 md:p-6 max-w-2xl mx-auto">
+        {/* 骨架屏 - 头部 */}
+        <div className="bg-white border-3 border-dark rounded-2xl shadow-neo p-6 mb-8 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-200 rounded-xl" />
+            <div className="h-8 bg-slate-200 rounded-lg w-32" />
+          </div>
+          <div className="h-4 bg-slate-200 rounded w-48 mt-3" />
+        </div>
+        
+        {/* 骨架屏 - 技能卡片 */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border-3 border-dark rounded-2xl p-5 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-slate-200 rounded-2xl" />
+                <div className="flex-1">
+                  <div className="h-5 bg-slate-200 rounded w-24 mb-2" />
+                  <div className="h-4 bg-slate-200 rounded w-40" />
+                  <div className="h-3 bg-slate-200 rounded-full w-full mt-3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <p className="text-center text-slate-400 mt-6 font-medium">正在加载课程...</p>
       </div>
     );
   }
