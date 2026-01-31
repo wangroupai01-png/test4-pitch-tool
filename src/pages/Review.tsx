@@ -9,7 +9,6 @@ import { useUserStore } from '../store/useUserStore';
 import { getReviewStatus, getReviewPriority } from '../utils/spacedRepetition';
 import { getWeakPoints } from '../utils/reviewService';
 import { getMidiNoteName } from '../utils/musicTheory';
-import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 import { LoginPrompt } from '../components/auth/LoginPrompt';
 
 const MotionDiv = motion.div as any;
@@ -257,7 +256,6 @@ export const Review = () => {
           <h1 className="text-xl font-black text-dark">复习中心</h1>
           <p className="text-sm text-slate-500 font-medium">科学复习，高效记忆</p>
         </div>
-        <InstrumentSelector compact />
         <div className="p-2 bg-primary rounded-xl border-2 border-dark">
           <Brain className="w-5 h-5 text-white" />
         </div>

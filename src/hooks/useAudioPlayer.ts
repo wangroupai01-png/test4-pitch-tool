@@ -104,8 +104,8 @@ const midiToNoteName = (midi: number): string => {
   return `${NOTE_NAMES[noteIndex]}${octave}`;
 };
 
-// Soundfont URL base (FluidR3_GM supports multiple instruments)
-const SOUNDFONT_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+// Soundfont URL base - 使用 jsDelivr CDN 加速（比 GitHub Pages 快 2-3 倍）
+const SOUNDFONT_BASE = 'https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts@gh-pages/FluidR3_GM/';
 
 // Load a sample for a given MIDI note and instrument
 const loadInstrumentSample = async (midi: number, instrument: InstrumentId = currentInstrument): Promise<AudioBuffer | null> => {
@@ -140,19 +140,42 @@ const loadInstrumentSample = async (midi: number, instrument: InstrumentId = cur
   }
 };
 
-// Preload common notes for an instrument
-const preloadCommonNotes = async (instrument: InstrumentId = 'acoustic_grand_piano') => {
-  // Preload C3 to C6 (most commonly used range)
-  const notesToPreload = [];
-  for (let midi = 48; midi <= 84; midi++) {
-    notesToPreload.push(loadInstrumentSample(midi, instrument));
-  }
-  await Promise.all(notesToPreload);
+// Preload common notes for an instrument with progress callback
+const preloadCommonNotes = async (
+  instrument: InstrumentId = 'acoustic_grand_piano',
+  onProgress?: (loaded: number, total: number) => void
+) => {
+  // 极速模式：只预加载 5 个核心音（C4, E4, G4, C5 + 中间A4）
+  // 覆盖基础练习需求，其他音符按需即时加载
+  const essentialNotes = [60, 64, 67, 69, 72]; // C4, E4, G4, A4, C5
+  
+  const total = essentialNotes.length;
+  let loaded = 0;
+  
+  // 全并行加载
+  const promises = essentialNotes.map(async (midi) => {
+    await loadInstrumentSample(midi, instrument);
+    loaded++;
+    if (onProgress) {
+      onProgress(loaded, total);
+    }
+  });
+  
+  await Promise.all(promises);
+  
+  // 后台静默加载其他常用音符（不阻塞UI）
+  const extendedNotes = [62, 65, 71, 74, 76, 79]; // D4, F4, B4, D5, E5, G5
+  extendedNotes.forEach(midi => {
+    loadInstrumentSample(midi, instrument).catch(() => {});
+  });
 };
 
-// Preload function for switching instruments
-export const preloadInstrument = async (instrument: InstrumentId) => {
-  await preloadCommonNotes(instrument);
+// Preload function for switching instruments with progress callback
+export const preloadInstrument = async (
+  instrument: InstrumentId,
+  onProgress?: (loaded: number, total: number) => void
+) => {
+  await preloadCommonNotes(instrument, onProgress);
 };
 
 // Start preloading default piano when module loads

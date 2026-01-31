@@ -20,6 +20,7 @@ export const InstrumentSelector = ({ compact = false }: InstrumentSelectorProps)
   const [isOpen, setIsOpen] = useState(false);
   const [selectedInstrument, setSelectedInstrument] = useState<InstrumentId>(getCurrentInstrument());
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const { playNote } = useAudioPlayer();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -71,12 +72,15 @@ export const InstrumentSelector = ({ compact = false }: InstrumentSelectorProps)
   // 选择乐器
   const handleSelectInstrument = async (instrumentId: InstrumentId) => {
     setLoading(true);
+    setLoadingProgress(0);
     setSelectedInstrument(instrumentId);
     setCurrentInstrument(instrumentId);
     localStorage.setItem('preferredInstrument', instrumentId);
     
-    // 先完成预加载
-    await preloadInstrument(instrumentId);
+    // 先完成预加载，显示进度
+    await preloadInstrument(instrumentId, (loaded, total) => {
+      setLoadingProgress(Math.round((loaded / total) * 100));
+    });
     
     // 预加载完成后播放旋律
     playPreviewMelody(instrumentId);
@@ -84,6 +88,7 @@ export const InstrumentSelector = ({ compact = false }: InstrumentSelectorProps)
     // 延迟关闭，让用户听到完整旋律
     setTimeout(() => {
       setLoading(false);
+      setLoadingProgress(0);
       setIsOpen(false);
     }, 1500);
   };
@@ -128,6 +133,24 @@ export const InstrumentSelector = ({ compact = false }: InstrumentSelectorProps)
                 <span className="font-black text-sm">选择乐器音色</span>
               </div>
               <p className="text-xs text-slate-500 mt-1">点击切换，自动试听</p>
+              
+              {/* 加载进度条 */}
+              {loading && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-primary font-bold">加载音色中...</span>
+                    <span className="text-slate-500">{loadingProgress}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <MotionDiv
+                      className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${loadingProgress}%` }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 乐器列表 */}

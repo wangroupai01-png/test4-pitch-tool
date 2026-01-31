@@ -14,7 +14,6 @@ import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementCh
 import { showLevelUpToast } from '../components/game/LevelUpToast';
 import { updateReviewSchedule } from '../utils/reviewService';
 import { clearLearnCache } from './Learn';
-import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 import { FeedbackCard } from '../components/game/FeedbackCard';
 import { 
   INTERVAL_MNEMONICS, 
@@ -28,6 +27,8 @@ import {
   shouldShowLoginPrompt,
   markLoginPromptShown
 } from '../components/auth/LoginPrompt';
+import { TheorySection } from '../components/game/TheorySection';
+import type { TheoryContent } from '../components/game/TheorySection';
 
 interface Lesson {
   id: string;
@@ -42,6 +43,7 @@ interface Lesson {
     questions: Question[];
     passThreshold: number;
     timeLimit?: number; // 限时模式秒数
+    theory?: TheoryContent; // 课前理论内容
   };
 }
 
@@ -84,7 +86,7 @@ export const LessonPage = () => {
   
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gameState, setGameState] = useState<'loading' | 'playing' | 'result'>('loading');
+  const [gameState, setGameState] = useState<'loading' | 'theory' | 'playing' | 'result'>('loading');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -188,7 +190,13 @@ export const LessonPage = () => {
       }
 
       setLesson(data);
-      setGameState('playing');
+      
+      // 如果有理论内容，先显示理论页面
+      if (data?.content?.theory) {
+        setGameState('theory');
+      } else {
+        setGameState('playing');
+      }
     } catch (err) {
       console.error('[LessonPage] Error:', err);
     } finally {
@@ -1000,6 +1008,17 @@ export const LessonPage = () => {
     );
   }
 
+  // 理论页面显示
+  if (gameState === 'theory' && lesson.content.theory) {
+    return (
+      <TheorySection
+        theory={lesson.content.theory}
+        lessonName={lesson.name}
+        onComplete={() => setGameState('playing')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-light-bg pattern-grid-lg flex flex-col">
       {/* Header - Neo-Brutalism Style */}
@@ -1028,8 +1047,6 @@ export const LessonPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* 乐器选择器 */}
-          <InstrumentSelector compact />
           {/* 限时模式计时器 */}
           {timeLeft !== null && (
             <div className={`px-3 py-1 font-black rounded-lg border-2 border-dark shadow-neo-sm flex items-center gap-1 ${

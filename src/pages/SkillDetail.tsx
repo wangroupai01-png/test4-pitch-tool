@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
-import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 interface Skill {
   id: string;
@@ -245,7 +244,6 @@ export const SkillDetail = () => {
             <div className="text-3xl">{skill.icon}</div>
             <h1 className="text-xl md:text-2xl font-black text-dark">{skill.name}</h1>
           </div>
-          <InstrumentSelector />
         </div>
       </header>
 

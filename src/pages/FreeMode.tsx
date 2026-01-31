@@ -8,7 +8,6 @@ import { Card } from '../components/ui/Card';
 import { clsx } from 'clsx';
 import { getNoteName, getFrequency } from '../utils/musicTheory';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 // 录音记录类型
 interface Recording {
@@ -233,7 +232,6 @@ export const FreeMode = () => {
         <h1 className="text-lg sm:text-xl md:text-4xl font-black text-dark bg-white border-3 border-dark px-3 md:px-6 py-1 md:py-2 shadow-neo -rotate-1 text-center truncate">
           自由练习模式
         </h1>
-        <InstrumentSelector />
       </header>
 
       {/* Main Content */}

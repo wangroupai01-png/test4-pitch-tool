@@ -77,17 +77,6 @@ export const Compete = () => {
         animate={{ opacity: 1, y: 0, rotate: 0 }}
       >
         <Card className="!p-0 overflow-hidden mb-6 !border-accent relative">
-          {/* Fire decoration */}
-          <div className="absolute top-3 right-3 z-20">
-            <MotionDiv
-              animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-xl border border-white/30 shadow-sm"
-            >
-              <Flame className="w-5 h-5" />
-            </MotionDiv>
-          </div>
-          
           <div className="bg-gradient-to-r from-accent to-orange-400 p-5 text-white border-b-3 border-dark">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -96,9 +85,18 @@ export const Compete = () => {
                 </div>
                 <span className="font-black text-xl tracking-wide">每日挑战</span>
               </div>
-              <span className="bg-black/20 px-4 py-1.5 rounded-full text-sm font-bold border border-white/10 backdrop-blur-sm">
-                {new Date().toLocaleDateString('zh-CN', { weekday: 'long' })}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="bg-black/20 px-4 py-1.5 rounded-full text-sm font-bold border border-white/10 backdrop-blur-sm">
+                  {new Date().toLocaleDateString('zh-CN', { weekday: 'long' })}
+                </span>
+                <MotionDiv
+                  animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-xl border border-white/30 shadow-sm"
+                >
+                  <Flame className="w-5 h-5" />
+                </MotionDiv>
+              </div>
             </div>
           </div>
           

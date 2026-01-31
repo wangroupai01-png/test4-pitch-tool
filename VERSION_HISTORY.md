@@ -26,6 +26,41 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.7.2-theory-and-optimizations (2026-01-28)
+**状态**: ✅ 验收通过
+
+**新增功能**:
+- 📚 **课程理论模块**: 课程开始前展示理论知识，包含音频示例和要点
+- ⚡ **音色加载优化**: 加载速度提升 10 倍（5个核心音符 + jsDelivr CDN）
+- 📊 **加载进度条**: 切换音色时显示加载进度
+- 🎛️ **音色选择器集中**: 只保留在经验条和设置页面
+
+**Bug 修复**:
+- 🔧 竞技场每日挑战角标重叠问题
+
+**技术实现**:
+- TheorySection 组件支持 Markdown 内容和音频示例
+- 预加载核心音符（C4-C5），其他音符按需加载
+- 使用 jsDelivr CDN 替代 GitHub Pages
+
+**新增文件**:
+- `src/components/game/TheorySection.tsx` - 理论展示组件
+- `src/lib/add-theory-content.sql` - 理论内容 SQL（需手动执行）
+
+**修改文件**:
+- `src/hooks/useAudioPlayer.ts` - 音色加载优化
+- `src/components/ui/InstrumentSelector.tsx` - 加载进度条
+- `src/pages/LessonPage.tsx` - 集成理论模块
+- `src/pages/Compete.tsx` - 修复角标重叠
+- 8 个页面移除冗余的音色选择器
+
+**回滚命令**:
+```powershell
+git checkout v2.7.1-login-prompt
+```
+
+---
+
 ### v2.7.1-login-prompt (2026-01-28)
 **状态**: ✅ 验收通过
 

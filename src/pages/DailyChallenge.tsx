@@ -9,7 +9,6 @@ import { useUserStore } from '../store/useUserStore';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
-import { InstrumentSelector } from '../components/ui/InstrumentSelector';
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -270,8 +269,6 @@ export const DailyChallenge = () => {
                 />
               </div>
             </div>
-            
-            <InstrumentSelector compact />
             
             <div className="px-3 py-1 bg-white/20 text-white font-black rounded-lg border-2 border-white/30">
               {currentQuestionIndex + 1}/{questions.length}
