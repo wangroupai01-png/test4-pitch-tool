@@ -11,6 +11,53 @@ const getAudioContext = (): AudioContext => {
   return globalAudioContext;
 };
 
+// iOS 音频激活：必须在用户交互时同步调用
+let audioActivated = false;
+
+const activateAudioOnUserInteraction = () => {
+  if (audioActivated) return;
+  
+  const ctx = getAudioContext();
+  
+  // 尝试恢复 AudioContext
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(() => {
+      console.log('[Audio] AudioContext resumed successfully');
+      audioActivated = true;
+    }).catch(err => {
+      console.warn('[Audio] Failed to resume AudioContext:', err);
+    });
+  } else {
+    audioActivated = true;
+  }
+  
+  // 播放静音音频来"解锁" iOS 音频
+  const silentBuffer = ctx.createBuffer(1, 1, 22050);
+  const source = ctx.createBufferSource();
+  source.buffer = silentBuffer;
+  source.connect(ctx.destination);
+  source.start(0);
+  
+  console.log('[Audio] Audio activation triggered');
+};
+
+// 在页面首次用户交互时激活音频
+if (typeof window !== 'undefined') {
+  const activationEvents = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+  
+  const handleFirstInteraction = () => {
+    activateAudioOnUserInteraction();
+    // 移除监听器，只需激活一次
+    activationEvents.forEach(event => {
+      document.removeEventListener(event, handleFirstInteraction, true);
+    });
+  };
+  
+  activationEvents.forEach(event => {
+    document.addEventListener(event, handleFirstInteraction, true);
+  });
+}
+
 // 可用乐器列表
 export const INSTRUMENTS = {
   acoustic_grand_piano: { name: '钢琴', icon: '🎹', category: '键盘' },
@@ -152,9 +199,19 @@ export const useAudioPlayer = () => {
 
     const ctx = getAudioContext();
     
-    // Resume if suspended
+    // Resume if suspended (iOS requirement)
     if (ctx.state === 'suspended') {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+        console.log('[Audio] Context resumed in playNote');
+      } catch (err) {
+        console.warn('[Audio] Failed to resume context:', err);
+      }
+    }
+    
+    // 额外的 iOS 激活尝试
+    if (!audioActivated) {
+      activateAudioOnUserInteraction();
     }
 
     // Convert frequency to MIDI note number

@@ -15,6 +15,13 @@ import { showLevelUpToast } from '../components/game/LevelUpToast';
 import { updateReviewSchedule } from '../utils/reviewService';
 import { clearLearnCache } from './Learn';
 import { InstrumentSelector } from '../components/ui/InstrumentSelector';
+import { FeedbackCard } from '../components/game/FeedbackCard';
+import { 
+  INTERVAL_MNEMONICS, 
+  CHORD_CHARACTERISTICS, 
+  NOTE_TIPS,
+  getNoteComparisonTip 
+} from '../utils/feedbackData';
 
 interface Lesson {
   id: string;
@@ -79,6 +86,16 @@ export const LessonPage = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [nextLessonId, setNextLessonId] = useState<string | null>(null);
   const [selectedIntervalAnswer, setSelectedIntervalAnswer] = useState<string | null>(null);
+  
+  // 反馈相关状态
+  const [feedbackData, setFeedbackData] = useState<{
+    userAnswer: string;
+    correctAnswer: string;
+    tip?: string;
+    mnemonic?: string;
+    characteristic?: string;
+    correctMidi?: number;
+  } | null>(null);
   
   // Sing 模式专用状态
   const [singState, setSingState] = useState<SingState>('idle');
@@ -438,20 +455,33 @@ export const LessonPage = () => {
       setCorrectCount(newCorrectCount);
     }
 
+    // 生成反馈数据
+    const userNoteName = getMidiNoteName(midi);
+    const correctNoteName = getMidiNoteName(currentQuestion.targetMidi!);
+    setFeedbackData({
+      userAnswer: userNoteName,
+      correctAnswer: correctNoteName,
+      tip: !correct ? getNoteComparisonTip(midi, currentQuestion.targetMidi!) : undefined,
+      mnemonic: !correct ? NOTE_TIPS[currentQuestion.targetMidi!] : undefined,
+      correctMidi: currentQuestion.targetMidi,
+    });
+
     // 播放选择的音符（将 MIDI 转换为频率）
     playNote(getFrequency(midi));
 
-    // 延迟后进入下一题
+    // 延迟后进入下一题（错误时多等1秒让用户阅读）
+    const delay = correct ? 1500 : 3000;
     setTimeout(() => {
       if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
         setCurrentQuestionIndex((prev) => prev + 1);
         setSelectedAnswer(null);
         setShowFeedback(false);
+        setFeedbackData(null);
       } else {
         // 完成课程 - 传入最终的正确数量
         handleLessonComplete(newCorrectCount);
       }
-    }, 1500);
+    }, delay);
   };
 
   // 处理音程/和弦/旋律答案选择
@@ -483,17 +513,39 @@ export const LessonPage = () => {
       setCorrectCount(newCorrectCount);
     }
 
-    // 延迟后进入下一题
+    // 生成反馈数据
+    if (currentQuestion.type === 'interval' || currentQuestion.type === 'interval_identify') {
+      setFeedbackData({
+        userAnswer: answer,
+        correctAnswer: correctAnswer,
+        mnemonic: !correct ? INTERVAL_MNEMONICS[correctAnswer] : undefined,
+      });
+    } else if (currentQuestion.type === 'chord_identify') {
+      setFeedbackData({
+        userAnswer: answer,
+        correctAnswer: correctAnswer,
+        characteristic: !correct ? CHORD_CHARACTERISTICS[currentQuestion.chordType || ''] : undefined,
+      });
+    } else {
+      setFeedbackData({
+        userAnswer: answer,
+        correctAnswer: correctAnswer,
+      });
+    }
+
+    // 延迟后进入下一题（错误时多等1秒让用户阅读）
+    const delay = correct ? 1500 : 3000;
     setTimeout(() => {
       if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
         setCurrentQuestionIndex((prev) => prev + 1);
         setSelectedIntervalAnswer(null);
         setShowFeedback(false);
+        setFeedbackData(null);
       } else {
         // 完成课程
         handleLessonComplete(newCorrectCount);
       }
-    }, 1500);
+    }, delay);
   };
 
   const handleLessonComplete = async (finalCorrectCount: number) => {
@@ -851,6 +903,43 @@ export const LessonPage = () => {
     if (score >= lesson!.content.passThreshold * 100) return 1;
     return 0;
   };
+
+  // 播放正确答案（用于反馈卡片的重听按钮）
+  const handlePlayCorrectAnswer = useCallback(() => {
+    if (!currentQuestion || !isReady) return;
+    
+    if (currentQuestion.type === 'interval' || currentQuestion.type === 'interval_identify') {
+      // 音程：播放两个音
+      const baseMidi = currentQuestion.baseMidi ?? currentQuestion.rootMidi ?? 60;
+      const intervalSemitones = currentQuestion.intervalSemitones ?? currentQuestion.interval ?? 0;
+      
+      playNote(getFrequency(baseMidi));
+      setTimeout(() => {
+        playNote(getFrequency(baseMidi + intervalSemitones));
+      }, 600);
+    } else if (currentQuestion.type === 'chord' || currentQuestion.type === 'chord_identify') {
+      // 和弦：同时播放所有音
+      const root = currentQuestion.rootMidi ?? 60;
+      let intervals: number[] = [0, 4, 7];
+      
+      switch (currentQuestion.chordType) {
+        case 'major': intervals = [0, 4, 7]; break;
+        case 'minor': intervals = [0, 3, 7]; break;
+        case 'dim': intervals = [0, 3, 6]; break;
+        case 'aug': intervals = [0, 4, 8]; break;
+        case 'maj7': intervals = [0, 4, 7, 11]; break;
+        case 'min7': intervals = [0, 3, 7, 10]; break;
+        case 'dom7': intervals = [0, 4, 7, 10]; break;
+      }
+      
+      intervals.forEach(interval => {
+        playNote(getFrequency(root + interval));
+      });
+    } else if (currentQuestion.targetMidi !== undefined) {
+      // 单音
+      playNote(getFrequency(currentQuestion.targetMidi));
+    }
+  }, [currentQuestion, isReady, playNote]);
 
   const isPassed = () => {
     if (!lesson) return false;
@@ -1266,29 +1355,19 @@ export const LessonPage = () => {
                 )}
               </div>
 
-              {/* Feedback */}
+              {/* 增强版反馈 */}
               <AnimatePresence>
-                {showFeedback && (
-                  <MotionDiv
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`mt-6 p-4 rounded-xl border-3 border-dark shadow-neo-sm ${isCorrect ? 'bg-secondary text-white' : 'bg-red-500 text-white'}`}
-                  >
-                    <p className="font-black text-lg">
-                      {isCorrect 
-                        ? '正确！🎉' 
-                        : currentQuestion.type === 'interval'
-                          ? `错误，正确答案是 ${currentQuestion.answer}`
-                          : currentQuestion.type === 'interval_identify'
-                          ? `错误，正确答案是 ${currentQuestion.intervalName}`
-                          : currentQuestion.type === 'chord_identify'
-                          ? `错误，正确答案是 ${(currentQuestion.options as string[])?.[0]}`
-                          : currentQuestion.type === 'melody'
-                          ? `错误，正确答案是 ${(currentQuestion.options as string[][])?.[0]?.join(' → ')}`
-                          : `错误，正确答案是 ${getMidiNoteName(currentQuestion.targetMidi!)}`
-                      }
-                    </p>
-                  </MotionDiv>
+                {showFeedback && feedbackData && (
+                  <FeedbackCard
+                    className="mt-6"
+                    isCorrect={isCorrect}
+                    userAnswer={feedbackData.userAnswer}
+                    correctAnswer={feedbackData.correctAnswer}
+                    tip={feedbackData.tip}
+                    mnemonic={feedbackData.mnemonic}
+                    characteristic={feedbackData.characteristic}
+                    onPlayCorrect={!isCorrect ? handlePlayCorrectAnswer : undefined}
+                  />
                 )}
               </AnimatePresence>
                 </>
