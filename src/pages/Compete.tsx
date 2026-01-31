@@ -5,12 +5,29 @@ import { Trophy, Calendar, Users, ChevronRight, Crown, Medal, Zap, Flame } from 
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Leaderboard } from '../components/game/Leaderboard';
+import { useUserStore } from '../store/useUserStore';
+import { LoginPrompt } from '../components/auth/LoginPrompt';
 
 const MotionDiv = motion.div as any;
 
 export const Compete = () => {
   const navigate = useNavigate();
+  const { isGuest } = useUserStore();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [loginTrigger, setLoginTrigger] = useState<'leaderboard' | 'daily'>('leaderboard');
+
+  // 处理需要登录的功能点击
+  const handleGuestAction = (trigger: 'leaderboard' | 'daily') => {
+    if (isGuest) {
+      setLoginTrigger(trigger);
+      setShowLoginPrompt(true);
+    } else if (trigger === 'leaderboard') {
+      setShowLeaderboard(true);
+    } else if (trigger === 'daily') {
+      navigate('/daily-challenge');
+    }
+  };
 
   // 每日挑战 - 根据星期几显示不同类型
   const getDailyChallenge = () => {
@@ -102,7 +119,7 @@ export const Compete = () => {
             <div className="mt-6">
               <Button 
                 className="w-full py-4 text-lg shadow-neo hover:shadow-neo-lg transition-all active:translate-y-1 active:shadow-none"
-                onClick={() => navigate('/daily-challenge')}
+                onClick={() => handleGuestAction('daily')}
               >
                 <Zap className="w-6 h-6 mr-2" />
                 开始挑战
@@ -134,7 +151,7 @@ export const Compete = () => {
       >
         <Card 
           className="!p-5 flex items-center gap-4 cursor-pointer hover:shadow-neo-lg transition-all mb-4"
-          onClick={() => setShowLeaderboard(true)}
+          onClick={() => handleGuestAction('leaderboard')}
         >
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center border-3 border-dark shadow-neo-sm">
             <Crown className="w-7 h-7 text-white" />
@@ -212,6 +229,13 @@ export const Compete = () => {
 
       {/* Leaderboard Modal */}
       <Leaderboard isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
+      
+      {/* 游客登录引导 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        trigger={loginTrigger}
+      />
     </div>
   );
 };

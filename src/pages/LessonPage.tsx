@@ -22,6 +22,12 @@ import {
   NOTE_TIPS,
   getNoteComparisonTip 
 } from '../utils/feedbackData';
+import { 
+  LoginPrompt, 
+  incrementGuestCompletedLessons, 
+  shouldShowLoginPrompt,
+  markLoginPromptShown
+} from '../components/auth/LoginPrompt';
 
 interface Lesson {
   id: string;
@@ -86,6 +92,10 @@ export const LessonPage = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [nextLessonId, setNextLessonId] = useState<string | null>(null);
   const [selectedIntervalAnswer, setSelectedIntervalAnswer] = useState<string | null>(null);
+  
+  // 登录引导状态
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [guestLessonCount, setGuestLessonCount] = useState(0);
   
   // 反馈相关状态
   const [feedbackData, setFeedbackData] = useState<{
@@ -573,6 +583,22 @@ export const LessonPage = () => {
 
     if (!lesson || !user) {
       console.log('[LessonPage] Skipping save - no user or lesson');
+      
+      // 游客完成课程：追踪并可能显示登录提示
+      if (!user && passed) {
+        const newCount = incrementGuestCompletedLessons();
+        setGuestLessonCount(newCount);
+        console.log('[LessonPage] Guest completed lesson, total:', newCount);
+        
+        // 检查是否应该显示登录提示
+        if (shouldShowLoginPrompt()) {
+          // 延迟显示，让用户先看到结果
+          setTimeout(() => {
+            setShowLoginPrompt(true);
+            markLoginPromptShown();
+          }, 2000);
+        }
+      }
       return;
     }
     
@@ -1480,6 +1506,14 @@ export const LessonPage = () => {
           )}
         </AnimatePresence>
       </main>
+      
+      {/* 游客登录引导弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        completedLessons={guestLessonCount}
+        trigger="lessons"
+      />
     </div>
   );
 };

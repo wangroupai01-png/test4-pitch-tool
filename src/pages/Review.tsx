@@ -10,6 +10,7 @@ import { getReviewStatus, getReviewPriority } from '../utils/spacedRepetition';
 import { getWeakPoints } from '../utils/reviewService';
 import { getMidiNoteName } from '../utils/musicTheory';
 import { InstrumentSelector } from '../components/ui/InstrumentSelector';
+import { LoginPrompt } from '../components/auth/LoginPrompt';
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -184,6 +185,8 @@ export const Review = () => {
     }
   };
 
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  
   if (!user) {
     return (
       <div className="min-h-screen bg-light-bg pattern-grid-lg">
@@ -206,11 +209,17 @@ export const Review = () => {
             <p className="text-slate-500 font-medium mb-6">
               复习系统会根据你的学习情况，智能安排复习计划
             </p>
-            <Button onClick={() => navigate('/profile')}>
+            <Button onClick={() => setShowLoginPrompt(true)}>
               去登录
             </Button>
           </Card>
         </div>
+        
+        <LoginPrompt
+          isOpen={showLoginPrompt}
+          onClose={() => setShowLoginPrompt(false)}
+          trigger="review"
+        />
       </div>
     );
   }
