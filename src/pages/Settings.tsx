@@ -18,6 +18,65 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
 
+// 图片压缩函数 - 将图片压缩到指定尺寸和质量
+const compressImage = (file: File, maxSize: number = 300, quality: number = 0.8): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        
+        // 计算缩放尺寸（保持宽高比，最大边为 maxSize）
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('无法创建 canvas context'));
+          return;
+        }
+        
+        // 绘制压缩后的图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 转换为 Blob（JPEG 格式，指定质量）
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log(`[Compress] 原始: ${(file.size / 1024).toFixed(1)}KB -> 压缩后: ${(blob.size / 1024).toFixed(1)}KB`);
+              resolve(blob);
+            } else {
+              reject(new Error('图片压缩失败'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('图片加载失败'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('文件读取失败'));
+    reader.readAsDataURL(file);
+  });
+};
+
 // 25个预设头像（使用 emoji 和渐变色）
 const PRESET_AVATARS = [
   { id: 1, emoji: '🎵', bg: 'from-primary to-secondary' },
@@ -183,27 +242,27 @@ export const Settings = () => {
       return;
     }
     
-    // 验证文件大小 (最大 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: '图片大小不能超过2MB' });
-      return;
-    }
-    
     setUploading(true);
-    setMessage(null);
+    setMessage({ type: 'success', text: '正在压缩图片...' });
     
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      // 压缩图片到 300x300，质量 0.8
+      const compressedBlob = await compressImage(file, 300, 0.8);
+      
+      setMessage({ type: 'success', text: '正在上传...' });
+      
+      const fileName = `${user.id}-${Date.now()}.jpg`;
       const filePath = `avatars/${fileName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, compressedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
       
       if (uploadError) {
         console.error('[Settings] Upload error:', uploadError);
-        // 显示更详细的错误信息
         if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
           setMessage({ type: 'error', text: '存储服务未配置，请联系管理员' });
         } else if (uploadError.message?.includes('policy')) {
@@ -223,7 +282,7 @@ export const Settings = () => {
       setMessage({ type: 'success', text: '上传成功！' });
     } catch (err) {
       console.error('[Settings] Upload error:', err);
-      setMessage({ type: 'error', text: '上传失败' });
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : '上传失败' });
     } finally {
       setUploading(false);
     }
