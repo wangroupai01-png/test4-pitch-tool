@@ -26,6 +26,33 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.7.1-login-prompt (2026-01-28)
+**状态**: ✅ 验收通过
+
+**新增功能**:
+- 🔔 **渐进式登录引导**: 游客完成课程后温和引导登录
+- 💡 **智能触发时机**: 每完成2课显示一次，每日最多2次
+- 🎯 **多场景触发**: 课程完成、复习中心、竞技场、排行榜
+- 🎨 **精美弹窗设计**: 根据场景展示不同引导文案和图标
+
+**技术实现**:
+- localStorage 记录游客课程完成数
+- 防止过度打扰的频率控制机制
+- 登录弹窗与引导弹窗无缝衔接
+
+**修改文件**:
+- `src/components/auth/LoginPrompt.tsx` - 登录引导组件（新建）
+- `src/pages/LessonPage.tsx` - 课程完成后触发引导
+- `src/pages/Review.tsx` - 复习中心登录引导
+- `src/pages/Compete.tsx` - 竞技场登录引导
+
+**回滚命令**:
+```powershell
+git checkout v2.7-onboarding
+```
+
+---
+
 ### v2.7-onboarding (2026-01-28)
 **状态**: ✅ 验收通过
 
