@@ -26,6 +26,39 @@ git push origin master --force
 
 ## 版本列表
 
+### v2.8-pwa-offline (2026-01-28)
+**状态**: ✅ 验收通过
+
+**新增功能**:
+- 📱 **PWA 离线支持**: 应用可安装到桌面/手机，支持离线使用
+- 🚀 **智能缓存策略**: 首次加载后，后续访问几乎秒开
+- 🎵 **音频采样缓存**: 音色文件缓存 60 天，无需重复下载
+- 📡 **API 请求缓存**: Supabase 数据缓存 5 分钟，离线时使用缓存
+
+**缓存策略**:
+| 资源类型 | 策略 | 缓存时间 |
+|---------|------|---------|
+| JS/CSS/图片 | CacheFirst | 30 天 |
+| 音频采样 | CacheFirst | 60 天 |
+| Supabase API | NetworkFirst | 5 分钟 |
+| 页面导航 | NetworkFirst | 1 天 |
+
+**技术实现**:
+- vite-plugin-pwa + Workbox
+- Service Worker 自动注册和更新
+- 支持添加到主屏幕
+
+**修改文件**:
+- `vite.config.ts` - PWA 配置
+- `package.json` - 新增 vite-plugin-pwa 依赖
+
+**回滚命令**:
+```powershell
+git checkout v2.7.2-theory-and-optimizations
+```
+
+---
+
 ### v2.7.2-theory-and-optimizations (2026-01-28)
 **状态**: ✅ 验收通过
 
