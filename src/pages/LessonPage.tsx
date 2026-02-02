@@ -458,6 +458,25 @@ export const LessonPage = () => {
     }, 2000);
   }, [correctCount, currentQuestionIndex, lesson]);
 
+  // 跳转到下一题或完成课程
+  const goToNextQuestion = useCallback((finalCorrectCount: number) => {
+    if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setSelectedAnswer(null);
+      setSelectedIntervalAnswer(null);
+      setShowFeedback(false);
+      setFeedbackData(null);
+    } else {
+      // 完成课程
+      handleLessonComplete(finalCorrectCount);
+    }
+  }, [currentQuestionIndex, lesson]);
+
+  // 用户手动点击继续（用于答错时）
+  const handleContinue = useCallback(() => {
+    goToNextQuestion(correctCount);
+  }, [goToNextQuestion, correctCount]);
+
   const handleSelectAnswer = async (midi: number) => {
     if (showFeedback || !currentQuestion) return;
 
@@ -487,19 +506,13 @@ export const LessonPage = () => {
     // 播放选择的音符（将 MIDI 转换为频率）
     playNote(getFrequency(midi));
 
-    // 延迟后进入下一题（错误时多等1秒让用户阅读）
-    const delay = correct ? 1500 : 3000;
-    setTimeout(() => {
-      if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
-        setCurrentQuestionIndex((prev) => prev + 1);
-        setSelectedAnswer(null);
-        setShowFeedback(false);
-        setFeedbackData(null);
-      } else {
-        // 完成课程 - 传入最终的正确数量
-        handleLessonComplete(newCorrectCount);
-      }
-    }, delay);
+    // 答对时自动跳转，答错时等待用户手动点击
+    if (correct) {
+      setTimeout(() => {
+        goToNextQuestion(newCorrectCount);
+      }, 1500);
+    }
+    // 答错时不自动跳转，由用户点击"继续"按钮
   };
 
   // 处理音程/和弦/旋律答案选择
@@ -551,19 +564,13 @@ export const LessonPage = () => {
       });
     }
 
-    // 延迟后进入下一题（错误时多等1秒让用户阅读）
-    const delay = correct ? 1500 : 3000;
-    setTimeout(() => {
-      if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
-        setCurrentQuestionIndex((prev) => prev + 1);
-        setSelectedIntervalAnswer(null);
-        setShowFeedback(false);
-        setFeedbackData(null);
-      } else {
-        // 完成课程
-        handleLessonComplete(newCorrectCount);
-      }
-    }, delay);
+    // 答对时自动跳转，答错时等待用户手动点击
+    if (correct) {
+      setTimeout(() => {
+        goToNextQuestion(newCorrectCount);
+      }, 1500);
+    }
+    // 答错时不自动跳转，由用户点击"继续"按钮
   };
 
   const handleLessonComplete = async (finalCorrectCount: number) => {
@@ -1401,16 +1408,39 @@ export const LessonPage = () => {
               {/* 增强版反馈 */}
               <AnimatePresence>
                 {showFeedback && feedbackData && (
-                  <FeedbackCard
+                  <MotionDiv
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
                     className="mt-6"
-                    isCorrect={isCorrect}
-                    userAnswer={feedbackData.userAnswer}
-                    correctAnswer={feedbackData.correctAnswer}
-                    tip={feedbackData.tip}
-                    mnemonic={feedbackData.mnemonic}
-                    characteristic={feedbackData.characteristic}
-                    onPlayCorrect={!isCorrect ? handlePlayCorrectAnswer : undefined}
-                  />
+                  >
+                    <FeedbackCard
+                      isCorrect={isCorrect}
+                      userAnswer={feedbackData.userAnswer}
+                      correctAnswer={feedbackData.correctAnswer}
+                      tip={feedbackData.tip}
+                      mnemonic={feedbackData.mnemonic}
+                      characteristic={feedbackData.characteristic}
+                      onPlayCorrect={!isCorrect ? handlePlayCorrectAnswer : undefined}
+                    />
+                    
+                    {/* 答错时显示继续按钮 */}
+                    {!isCorrect && (
+                      <MotionDiv
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-4"
+                      >
+                        <Button 
+                          className="w-full py-4 text-lg"
+                          onClick={handleContinue}
+                        >
+                          继续 <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                      </MotionDiv>
+                    )}
+                  </MotionDiv>
                 )}
               </AnimatePresence>
                 </>
