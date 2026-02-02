@@ -44,6 +44,37 @@ const GlobalXPBar = () => {
   return <XPBar />;
 };
 
+// 游客 Onboarding 检测组件
+const GuestOnboardingCheck = () => {
+  const location = useLocation();
+  const { isGuest, isLoading } = useUserStore();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  
+  useEffect(() => {
+    // 只在以下条件满足时检测：
+    // 1. 加载完成
+    // 2. 是游客
+    // 3. 不是在 onboarding 页面
+    // 4. 是首页（/learn 或 /）
+    if (!isLoading && isGuest && location.pathname !== '/onboarding') {
+      const isMainPage = location.pathname === '/learn' || location.pathname === '/';
+      if (isMainPage) {
+        // 检查游客是否已完成 onboarding
+        const completed = localStorage.getItem('onboarding_completed') === 'true';
+        if (!completed) {
+          setShouldRedirect(true);
+        }
+      }
+    }
+  }, [isLoading, isGuest, location.pathname]);
+  
+  if (shouldRedirect) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  
+  return null;
+};
+
 function App() {
   const initialize = useUserStore((state) => state.initialize);
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
@@ -100,6 +131,9 @@ function App() {
         
         {/* 全局经验条 - 在所有页面顶部显示 */}
         <GlobalXPBar />
+        
+        {/* 游客 Onboarding 检测 */}
+        <GuestOnboardingCheck />
         
         <Routes>
           {/* Tab Layout Routes */}
