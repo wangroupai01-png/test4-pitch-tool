@@ -87,6 +87,7 @@ export const Learn = () => {
   const [lessonCounts, setLessonCounts] = useState<Map<string, { total: number; completed: number }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
   const { user } = useUserStore();
   const initialLoadDone = useRef(false);
@@ -144,38 +145,64 @@ export const Learn = () => {
   }, [user]);
 
   const loadSkillTree = async (forceRefresh = false) => {
-    // 如果不是强制刷新且缓存有效，使用缓存
-    if (!forceRefresh && isCacheValid() && !initialLoadDone.current) {
+    // 优先使用缓存（即使过期），先显示内容
+    const hasCacheData = globalCache && globalCache.skills.length > 0;
+    
+    if (hasCacheData && !initialLoadDone.current) {
       loadFromCache();
       setLoading(false);
       initialLoadDone.current = true;
-      return;
+      
+      // 如果缓存有效，不需要后台刷新
+      if (isCacheValid() && !forceRefresh) {
+        return;
+      }
+      // 否则在后台静默刷新
     }
 
-    if (!forceRefresh) {
+    if (!hasCacheData && !forceRefresh) {
       setLoading(true);
+      setLoadError(false);
     }
     
+    // 创建超时 Promise（15秒）
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 15000);
+    });
+    
     try {
-      // 加载所有技能
-      const { data: skillsData, error: skillsError } = await supabase
+      // 加载所有技能（带超时）
+      const skillsPromise = supabase
         .from('skills')
         .select('*')
         .order('sort_order');
+      
+      const { data: skillsData, error: skillsError } = await Promise.race([
+        skillsPromise,
+        timeoutPromise
+      ]) as any;
 
       if (skillsError) {
         console.error('[Learn] Error loading skills:', skillsError);
-        setLoading(false);
-        setIsRefreshing(false);
+        // 如果有缓存，继续使用缓存
+        if (!hasCacheData) {
+          setLoading(false);
+          setIsRefreshing(false);
+        }
         return;
       }
 
       setSkills(skillsData || []);
 
-      // 加载课程数量
-      const { data: lessonsData } = await supabase
+      // 加载课程数量（带超时）
+      const lessonsPromise = supabase
         .from('lessons')
         .select('id, skill_id');
+      
+      const { data: lessonsData } = await Promise.race([
+        lessonsPromise,
+        timeoutPromise
+      ]) as any;
 
       const counts = new Map<string, { total: number; completed: number }>();
       lessonsData?.forEach((lesson: any) => {
@@ -188,36 +215,36 @@ export const Learn = () => {
 
       // 如果用户登录，加载进度
       if (user) {
-        const { data: progressData } = await supabase
-          .from('user_skill_progress')
-          .select('*')
-          .eq('user_id', user.id);
+        try {
+          const [progressResult, lessonProgressResult] = await Promise.race([
+            Promise.all([
+              supabase.from('user_skill_progress').select('*').eq('user_id', user.id),
+              supabase.from('user_lesson_progress').select('lesson_id, status').eq('user_id', user.id).eq('status', 'completed')
+            ]),
+            timeoutPromise
+          ]) as any;
 
-        progressData?.forEach((p: any) => {
-          progressMap.set(p.skill_id, p);
-        });
-
-        // 获取课程完成进度
-        const { data: lessonProgressData } = await supabase
-          .from('user_lesson_progress')
-          .select('lesson_id, status')
-          .eq('user_id', user.id)
-          .eq('status', 'completed');
-
-        // 统计每个技能完成的课程数
-        if (lessonProgressData && lessonsData) {
-          const lessonToSkill = new Map<string, string>();
-          lessonsData.forEach((l: any) => lessonToSkill.set(l.id, l.skill_id));
-          
-          lessonProgressData.forEach((lp: any) => {
-            const skillId = lessonToSkill.get(lp.lesson_id);
-            if (skillId) {
-              const current = counts.get(skillId);
-              if (current) {
-                current.completed++;
-              }
-            }
+          progressResult.data?.forEach((p: any) => {
+            progressMap.set(p.skill_id, p);
           });
+
+          // 统计每个技能完成的课程数
+          if (lessonProgressResult.data && lessonsData) {
+            const lessonToSkill = new Map<string, string>();
+            lessonsData.forEach((l: any) => lessonToSkill.set(l.id, l.skill_id));
+            
+            lessonProgressResult.data.forEach((lp: any) => {
+              const skillId = lessonToSkill.get(lp.lesson_id);
+              if (skillId) {
+                const current = counts.get(skillId);
+                if (current) {
+                  current.completed++;
+                }
+              }
+            });
+          }
+        } catch (progressErr) {
+          console.warn('[Learn] Progress load timeout, using partial data');
         }
       } else {
         // 访客模式：第一个技能解锁
@@ -233,7 +260,11 @@ export const Learn = () => {
       saveToCache(skillsData || [], counts, progressMap);
       initialLoadDone.current = true;
     } catch (err) {
-      console.error('[Learn] Error:', err);
+      console.error('[Learn] Error or timeout:', err);
+      // 如果没有缓存数据，显示错误状态
+      if (!hasCacheData) {
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -327,7 +358,19 @@ export const Learn = () => {
           ))}
         </div>
         
-        <p className="text-center text-slate-400 mt-6 font-medium">正在加载课程...</p>
+        <p className="text-center text-slate-400 mt-6 font-medium">
+          {loadError ? '网络连接超时' : '正在加载课程...'}
+        </p>
+        {loadError && (
+          <div className="text-center mt-4">
+            <button 
+              onClick={() => loadSkillTree(true)}
+              className="px-6 py-2 bg-primary text-white font-bold rounded-xl border-2 border-dark shadow-neo-sm hover:shadow-neo transition-all"
+            >
+              点击重试
+            </button>
+          </div>
+        )}
       </div>
     );
   }

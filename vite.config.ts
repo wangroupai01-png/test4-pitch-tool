@@ -62,18 +62,15 @@ export default defineConfig({
             }
           },
           {
-            // Supabase API - 网络优先，离线时使用缓存
+            // Supabase API - 纯网络模式，不缓存（避免中国区超时问题）
             urlPattern: /supabase\.co/i,
-            handler: 'NetworkFirst',
+            handler: 'NetworkOnly',
             options: {
-              cacheName: 'supabase-api',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 5 * 60 // 5分钟
-              },
-              networkTimeoutSeconds: 10,
-              cacheableResponse: {
-                statuses: [0, 200]
+              backgroundSync: {
+                name: 'supabase-queue',
+                options: {
+                  maxRetentionTime: 24 * 60
+                }
               }
             }
           },
