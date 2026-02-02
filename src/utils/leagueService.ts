@@ -6,245 +6,154 @@ export interface LeagueConfig {
   name: string;
   icon: string;
   color: string;
-  promotion_rate: number;
-  demotion_rate: number;
+  required_xp: number;
   xp_multiplier: number;
-  weekly_bonus: number;
   sort_order: number;
-}
-
-// 联赛赛季类型
-export interface LeagueSeason {
-  id: string;
-  season_number: number;
-  start_date: string;
-  end_date: string;
-  status: 'upcoming' | 'active' | 'ended';
 }
 
 // 用户联赛状态类型
 export interface UserLeague {
   user_id: string;
   current_league: string;
-  current_season_id: string | null;
-  current_group_id: string | null;
-  weekly_xp: number;
-  rank_in_group: number | null;
+  total_xp: number;
   joined_at: string;
   updated_at: string;
 }
 
-// 组内排名类型
-export interface GroupMember {
+// 排行榜用户类型
+export interface LeaderboardUser {
   user_id: string;
   username: string | null;
   avatar_url: string | null;
-  weekly_xp: number;
+  total_xp: number;
+  current_league: string;
   rank: number;
 }
 
-// 联赛历史类型
-export interface LeagueHistory {
-  id: string;
-  user_id: string;
-  season_id: string;
-  league_id: string;
-  final_rank: number | null;
-  final_xp: number | null;
-  result: 'promoted' | 'stayed' | 'demoted' | null;
-  bonus_xp: number;
-  created_at: string;
-}
+// 默认联赛配置（前端备用）
+export const DEFAULT_LEAGUE_CONFIGS: LeagueConfig[] = [
+  { id: 'bronze', name: '青铜', icon: '🥉', color: 'from-amber-600 to-amber-800', required_xp: 0, xp_multiplier: 1.0, sort_order: 1 },
+  { id: 'silver', name: '白银', icon: '🥈', color: 'from-slate-300 to-slate-500', required_xp: 500, xp_multiplier: 1.1, sort_order: 2 },
+  { id: 'gold', name: '黄金', icon: '🥇', color: 'from-yellow-400 to-amber-500', required_xp: 2000, xp_multiplier: 1.2, sort_order: 3 },
+  { id: 'diamond', name: '钻石', icon: '💎', color: 'from-cyan-300 to-blue-500', required_xp: 5000, xp_multiplier: 1.3, sort_order: 4 },
+  { id: 'master', name: '大师', icon: '👑', color: 'from-purple-400 to-indigo-600', required_xp: 15000, xp_multiplier: 1.5, sort_order: 5 },
+  { id: 'legend', name: '传奇', icon: '🏆', color: 'from-amber-300 via-yellow-400 to-amber-500', required_xp: 50000, xp_multiplier: 2.0, sort_order: 6 },
+];
 
 // 获取所有联赛配置
 export const getLeagueConfigs = async (): Promise<LeagueConfig[]> => {
-  const { data, error } = await supabase
-    .from('league_config')
-    .select('*')
-    .order('sort_order');
-  
-  if (error) {
-    console.error('[League] Error fetching configs:', error);
-    return [];
-  }
-  
-  return data || [];
-};
-
-// 获取当前活跃赛季
-export const getCurrentSeason = async (): Promise<LeagueSeason | null> => {
-  const { data, error } = await supabase
-    .from('league_seasons')
-    .select('*')
-    .eq('status', 'active')
-    .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  
-  if (error) {
-    console.error('[League] Error fetching current season:', error);
-    return null;
-  }
-  
-  return data;
-};
-
-// 获取用户联赛状态
-export const getUserLeague = async (userId: string): Promise<UserLeague | null> => {
-  const { data, error } = await supabase
-    .from('user_league')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-  
-  if (error) {
-    console.error('[League] Error fetching user league:', error);
-    return null;
-  }
-  
-  return data;
-};
-
-// 加入联赛
-export const joinLeague = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc('join_league', {
-      p_user_id: userId
-    });
+    const { data, error } = await supabase
+      .from('league_config')
+      .select('*')
+      .order('sort_order');
     
     if (error) {
-      console.error('[League] Error joining league:', error);
-      return false;
+      console.error('[League] Error fetching configs:', error);
+      return DEFAULT_LEAGUE_CONFIGS;
     }
     
-    return data === true;
+    return data && data.length > 0 ? data : DEFAULT_LEAGUE_CONFIGS;
   } catch (err) {
-    console.error('[League] Exception joining league:', err);
-    return false;
+    console.error('[League] Exception fetching configs:', err);
+    return DEFAULT_LEAGUE_CONFIGS;
   }
 };
 
-// 获取组内排名
-export const getGroupRanking = async (groupId: string): Promise<GroupMember[]> => {
+// 根据XP计算联赛等级
+export const calculateLeagueForXP = (totalXP: number, configs: LeagueConfig[]): LeagueConfig => {
+  // 按 required_xp 降序排序，找到第一个满足条件的
+  const sorted = [...configs].sort((a, b) => b.required_xp - a.required_xp);
+  return sorted.find(c => totalXP >= c.required_xp) || configs[0];
+};
+
+// 获取用户联赛状态（优先从 profiles 获取 XP）
+export const getUserLeagueStatus = async (userId: string): Promise<{
+  league: LeagueConfig;
+  totalXP: number;
+  nextLeague: LeagueConfig | null;
+  xpToNext: number;
+  progress: number;
+}> => {
+  const configs = await getLeagueConfigs();
+  
+  // 从 profiles 获取用户 XP
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('total_xp')
+    .eq('id', userId)
+    .maybeSingle();
+  
+  const totalXP = profile?.total_xp || 0;
+  const currentLeague = calculateLeagueForXP(totalXP, configs);
+  
+  // 找到下一个联赛
+  const nextLeagueIndex = configs.findIndex(c => c.id === currentLeague.id) + 1;
+  const nextLeague = nextLeagueIndex < configs.length ? configs[nextLeagueIndex] : null;
+  
+  // 计算到下一级的进度
+  const xpToNext = nextLeague ? nextLeague.required_xp - totalXP : 0;
+  const currentXPInLevel = totalXP - currentLeague.required_xp;
+  const xpNeededForLevel = nextLeague ? nextLeague.required_xp - currentLeague.required_xp : 1;
+  const progress = nextLeague ? Math.min(100, (currentXPInLevel / xpNeededForLevel) * 100) : 100;
+  
+  return {
+    league: currentLeague,
+    totalXP,
+    nextLeague,
+    xpToNext,
+    progress
+  };
+};
+
+// 获取全服排行榜（基于 profiles.total_xp）
+export const getGlobalLeaderboard = async (limit: number = 20): Promise<LeaderboardUser[]> => {
+  const configs = await getLeagueConfigs();
+  
   const { data, error } = await supabase
-    .from('user_league')
-    .select(`
-      user_id,
-      weekly_xp,
-      profiles:user_id (
-        username,
-        avatar_url
-      )
-    `)
-    .eq('current_group_id', groupId)
-    .order('weekly_xp', { ascending: false });
+    .from('profiles')
+    .select('id, username, avatar_url, total_xp')
+    .order('total_xp', { ascending: false })
+    .limit(limit);
   
   if (error) {
-    console.error('[League] Error fetching group ranking:', error);
+    console.error('[League] Error fetching leaderboard:', error);
     return [];
   }
   
-  // 处理数据格式
-  return (data || []).map((item: any, index: number) => ({
-    user_id: item.user_id,
-    username: item.profiles?.username || null,
-    avatar_url: item.profiles?.avatar_url || null,
-    weekly_xp: item.weekly_xp,
+  return (data || []).map((user, index) => ({
+    user_id: user.id,
+    username: user.username,
+    avatar_url: user.avatar_url,
+    total_xp: user.total_xp || 0,
+    current_league: calculateLeagueForXP(user.total_xp || 0, configs).id,
     rank: index + 1
   }));
 };
 
-// 增加用户周XP
-export const addWeeklyXP = async (userId: string, xp: number): Promise<boolean> => {
-  const { error } = await supabase
-    .from('user_league')
-    .update({ 
-      weekly_xp: supabase.rpc('increment_weekly_xp', { amount: xp })
-    })
-    .eq('user_id', userId);
+// 获取用户在排行榜中的排名
+export const getUserRank = async (userId: string): Promise<number> => {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('total_xp')
+    .eq('id', userId)
+    .maybeSingle();
   
-  if (error) {
-    // 如果 RPC 不存在，使用简单的更新
-    const { data: currentData } = await supabase
-      .from('user_league')
-      .select('weekly_xp')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (currentData) {
-      const { error: updateError } = await supabase
-        .from('user_league')
-        .update({ weekly_xp: (currentData.weekly_xp || 0) + xp })
-        .eq('user_id', userId);
-      
-      if (updateError) {
-        console.error('[League] Error adding weekly XP:', updateError);
-        return false;
-      }
-    }
-  }
+  if (!profile) return 0;
   
-  return true;
-};
-
-// 获取用户联赛历史
-export const getLeagueHistory = async (userId: string): Promise<LeagueHistory[]> => {
-  const { data, error } = await supabase
-    .from('league_history')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  const { count } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .gt('total_xp', profile.total_xp || 0);
   
-  if (error) {
-    console.error('[League] Error fetching league history:', error);
-    return [];
-  }
-  
-  return data || [];
-};
-
-// 计算晋级/降级区域
-export const calculateZones = (totalMembers: number, config: LeagueConfig) => {
-  const promotionCount = Math.floor(totalMembers * config.promotion_rate);
-  const demotionStart = totalMembers - Math.floor(totalMembers * config.demotion_rate) + 1;
-  
-  return {
-    promotionZone: promotionCount, // 前 X 名晋级
-    safeZone: { start: promotionCount + 1, end: demotionStart - 1 },
-    demotionZone: { start: demotionStart, end: totalMembers } // 后 X 名降级
-  };
-};
-
-// 获取赛季剩余时间
-export const getSeasonRemainingTime = (endDate: string): { days: number; hours: number; minutes: number } => {
-  const end = new Date(endDate + 'T23:59:59');
-  const now = new Date();
-  const diff = end.getTime() - now.getTime();
-  
-  if (diff <= 0) {
-    return { days: 0, hours: 0, minutes: 0 };
-  }
-  
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
-  return { days, hours, minutes };
+  return (count || 0) + 1;
 };
 
 // 获取联赛显示信息
 export const getLeagueDisplayInfo = (leagueId: string, configs: LeagueConfig[]) => {
   const config = configs.find(c => c.id === leagueId);
   if (!config) {
-    return {
-      name: '未知',
-      icon: '❓',
-      color: 'from-slate-400 to-slate-600'
-    };
+    return DEFAULT_LEAGUE_CONFIGS[0];
   }
-  return {
-    name: config.name,
-    icon: config.icon,
-    color: config.color
-  };
+  return config;
 };

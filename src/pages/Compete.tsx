@@ -183,10 +183,10 @@ export const Compete = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-black text-xl text-dark flex items-center gap-2">
-                联赛系统
+                成长等级
                 <span className="text-xs bg-secondary text-white px-2 py-1 rounded-full font-bold">NEW</span>
               </h3>
-              <p className="text-sm text-slate-500 font-bold">周赛竞技，晋级挑战</p>
+              <p className="text-sm text-slate-500 font-bold">累计XP晋级，查看全服排名</p>
             </div>
             <div className="p-2 bg-slate-100 rounded-xl border-2 border-dark">
               <ChevronRight className="w-5 h-5 text-dark" />
