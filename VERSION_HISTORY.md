@@ -26,6 +26,40 @@ git push origin master --force
 
 ## 版本列表
 
+### v3.0-friends-system (2026-01-28)
+**状态**: ✅ 开发完成
+
+**新增功能**:
+- 👥 **好友系统**: 搜索并添加好友
+- 📩 **好友请求**: 发送/接受/拒绝好友请求
+- ⚔️ **好友PK**: 向好友发起听音PK挑战
+- 🏆 **PK结果**: 实时对战，比拼得分
+
+**功能特点**:
+- 用户名搜索好友
+- 好友列表展示XP和等级
+- PK挑战生成相同题目
+- 24小时挑战过期机制
+- 胜负平局判定
+
+**数据库更新**:
+需要运行: `src/lib/add-friends-system.sql`
+
+**影响文件**:
+- 新增: `src/lib/add-friends-system.sql`
+- 新增: `src/utils/friendService.ts`
+- 新增: `src/pages/FriendPK.tsx`
+- 更新: `src/pages/Friends.tsx`
+- 更新: `src/pages/Compete.tsx`
+- 更新: `src/App.tsx`
+
+**回滚命令**:
+```powershell
+git checkout v2.9-league-system
+```
+
+---
+
 ### v2.9-league-system (2026-01-28)
 **状态**: ✅ 验收通过
 

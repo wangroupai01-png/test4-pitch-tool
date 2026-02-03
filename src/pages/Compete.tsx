@@ -211,23 +211,31 @@ export const Compete = () => {
         </Card>
       </MotionDiv>
 
-      {/* Friend PK (Coming Soon) */}
+      {/* Friend PK */}
       <MotionDiv
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
+        whileHover={{ scale: 1.02, x: 4 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <Card className="!p-5 opacity-70 hover:opacity-80 transition-opacity">
+        <Card 
+          className="!p-5 cursor-pointer hover:shadow-neo-lg transition-all"
+          onClick={() => navigate('/friends')}
+        >
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-slate-200 flex items-center justify-center border-3 border-dark">
-              <Users className="w-7 h-7 text-slate-400" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center border-3 border-dark shadow-neo-sm">
+              <Users className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-black text-xl text-dark flex items-center gap-2">
                 好友PK
-                <span className="text-xs bg-slate-200 text-slate-500 px-2 py-1 rounded-full font-bold border border-slate-300">即将上线</span>
+                <span className="text-xs bg-secondary text-white px-2 py-1 rounded-full font-bold">NEW</span>
               </h3>
-              <p className="text-sm text-slate-500 font-bold">邀请好友一起挑战</p>
+              <p className="text-sm text-slate-500 font-bold">添加好友，互相挑战</p>
+            </div>
+            <div className="p-2 bg-slate-100 rounded-xl border-2 border-dark">
+              <ChevronRight className="w-5 h-5 text-dark" />
             </div>
           </div>
         </Card>

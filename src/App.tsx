@@ -18,6 +18,7 @@ import { Review } from './pages/Review';
 import { Stats } from './pages/Stats';
 import { Friends } from './pages/Friends';
 import { League } from './pages/League';
+import { FriendPK } from './pages/FriendPK';
 import { TabLayout } from './components/layout/TabLayout';
 import { useUserStore } from './store/useUserStore';
 import { AchievementToast, registerAchievementCallback } from './components/game/AchievementToast';
@@ -157,6 +158,7 @@ function App() {
           <Route path="/stats" element={<Stats />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/league" element={<League />} />
+          <Route path="/pk/:challengeId" element={<FriendPK />} />
           <Route path="/onboarding" element={<Onboarding />} />
           
           {/* Legacy Home - redirect to Learn */}

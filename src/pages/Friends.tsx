@@ -1,16 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Users, UserPlus, Search, Check, X, Swords, 
-  ChevronRight, Clock, Trophy, User
+  Clock, Trophy, User, Zap, UserMinus, Send
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useUserStore } from '../store/useUserStore';
-import { supabase } from '../lib/supabase';
+import {
+  searchUsers,
+  sendFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  removeFriend,
+  getFriendList,
+  getPendingRequests,
+  createChallenge,
+  getChallenges,
+  acceptChallenge,
+  declineChallenge,
+  type FriendInfo,
+  type FriendChallenge,
+  type UserSearchResult
+} from '../utils/friendService';
 
 const MotionDiv = motion.div as any;
+const MotionButton = motion.button as any;
 
 // 预设头像
 const PRESET_AVATARS: Record<number, { emoji: string; bg: string }> = {
@@ -19,40 +35,7 @@ const PRESET_AVATARS: Record<number, { emoji: string; bg: string }> = {
   3: { emoji: '🎹', bg: 'from-slate-700 to-slate-900' },
   4: { emoji: '🎤', bg: 'from-pink-500 to-rose-500' },
   5: { emoji: '🎺', bg: 'from-yellow-400 to-amber-500' },
-  6: { emoji: '🥁', bg: 'from-orange-500 to-red-600' },
-  7: { emoji: '🎻', bg: 'from-amber-600 to-yellow-700' },
-  8: { emoji: '🎷', bg: 'from-indigo-500 to-purple-600' },
 };
-
-interface Friend {
-  friend_id: string;
-  username: string | null;
-  avatar_url: string | null;
-  level: number;
-  friendship_status: 'pending' | 'accepted' | 'blocked';
-  is_requester: boolean;
-}
-
-interface SearchResult {
-  id: string;
-  username: string | null;
-  avatar_url: string | null;
-  level: number;
-}
-
-interface PKMatch {
-  id: string;
-  challenger_id: string;
-  opponent_id: string;
-  game_mode: 'quiz' | 'sing';
-  challenger_score: number;
-  opponent_score: number | null;
-  status: 'pending' | 'in_progress' | 'completed';
-  winner_id: string | null;
-  created_at: string;
-  challenger_profile?: { username: string; avatar_url: string };
-  opponent_profile?: { username: string; avatar_url: string };
-}
 
 type TabType = 'friends' | 'requests' | 'pk';
 
@@ -60,80 +43,53 @@ export const Friends = () => {
   const navigate = useNavigate();
   const { user, isGuest } = useUserStore();
   const [activeTab, setActiveTab] = useState<TabType>('friends');
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
-  const [pkMatches, setPkMatches] = useState<PKMatch[]>([]);
+  const [friends, setFriends] = useState<FriendInfo[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendInfo[]>([]);
+  const [challenges, setChallenges] = useState<FriendChallenge[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (user && !isGuest) {
-      loadFriends();
-      loadPKMatches();
+      loadData();
     } else {
       setLoading(false);
     }
   }, [user, isGuest]);
 
-  const loadFriends = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     
+    setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_friends_list', {
-        current_user_id: user.id
-      });
-
-      if (error) throw error;
-
-      const allFriends = data as Friend[];
-      setFriends(allFriends.filter(f => f.friendship_status === 'accepted'));
-      setPendingRequests(allFriends.filter(f => f.friendship_status === 'pending'));
+      const [friendsData, requestsData, challengesData] = await Promise.all([
+        getFriendList(user.id),
+        getPendingRequests(user.id),
+        getChallenges(user.id)
+      ]);
+      
+      setFriends(friendsData);
+      setPendingRequests(requestsData);
+      setChallenges(challengesData);
     } catch (err) {
-      console.error('Error loading friends:', err);
+      console.error('Error loading friends data:', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadPKMatches = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('friend_pk_matches')
-        .select(`
-          *,
-          challenger_profile:profiles!friend_pk_matches_challenger_id_fkey(username, avatar_url),
-          opponent_profile:profiles!friend_pk_matches_opponent_id_fkey(username, avatar_url)
-        `)
-        .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`)
-        .in('status', ['pending', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      setPkMatches(data || []);
-    } catch (err) {
-      console.error('Error loading PK matches:', err);
-    }
-  };
+  }, [user]);
 
   const handleSearch = async () => {
     if (!user || searchTerm.length < 2) return;
 
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.rpc('search_users', {
-        search_term: searchTerm,
-        current_user_id: user.id
-      });
-
-      if (error) throw error;
-      setSearchResults(data || []);
+      const results = await searchUsers(searchTerm, user.id);
+      setSearchResults(results);
     } catch (err) {
       console.error('Error searching users:', err);
     } finally {
@@ -141,99 +97,109 @@ export const Friends = () => {
     }
   };
 
-  const sendFriendRequest = async (friendId: string) => {
+  const handleSendRequest = async (friendId: string) => {
     if (!user) return;
 
     setActionLoading(friendId);
-    try {
-      const { error } = await supabase
-        .from('friendships')
-        .insert({
-          user_id: user.id,
-          friend_id: friendId,
-          status: 'pending'
-        });
-
-      if (error) throw error;
-      
-      // 移除已发送请求的用户
-      setSearchResults(prev => prev.filter(u => u.id !== friendId));
-      loadFriends();
-    } catch (err) {
-      console.error('Error sending friend request:', err);
-    } finally {
-      setActionLoading(null);
+    const result = await sendFriendRequest(user.id, friendId);
+    
+    if (result.success) {
+      setMessage({ type: 'success', text: '好友请求已发送' });
+      setSearchResults(prev => prev.map(u => 
+        u.id === friendId ? { ...u, friendship_status: 'pending_sent' as const } : u
+      ));
+    } else {
+      setMessage({ type: 'error', text: result.error || '发送失败' });
     }
+    
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
   };
 
-  const acceptRequest = async (friendId: string) => {
-    if (!user) return;
-
-    setActionLoading(friendId);
-    try {
-      const { error } = await supabase
-        .from('friendships')
-        .update({ status: 'accepted' })
-        .eq('user_id', friendId)
-        .eq('friend_id', user.id);
-
-      if (error) throw error;
-      loadFriends();
-    } catch (err) {
-      console.error('Error accepting request:', err);
-    } finally {
-      setActionLoading(null);
+  const handleAcceptRequest = async (friendshipId: string) => {
+    setActionLoading(friendshipId);
+    const success = await acceptFriendRequest(friendshipId);
+    
+    if (success) {
+      setMessage({ type: 'success', text: '已添加好友' });
+      loadData();
+    } else {
+      setMessage({ type: 'error', text: '操作失败' });
     }
+    
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
   };
 
-  const rejectRequest = async (friendId: string) => {
-    if (!user) return;
-
-    setActionLoading(friendId);
-    try {
-      const { error } = await supabase
-        .from('friendships')
-        .delete()
-        .eq('user_id', friendId)
-        .eq('friend_id', user.id);
-
-      if (error) throw error;
-      loadFriends();
-    } catch (err) {
-      console.error('Error rejecting request:', err);
-    } finally {
-      setActionLoading(null);
+  const handleRejectRequest = async (friendshipId: string) => {
+    setActionLoading(friendshipId);
+    const success = await rejectFriendRequest(friendshipId);
+    
+    if (success) {
+      loadData();
     }
+    
+    setActionLoading(null);
   };
 
-  const startPK = async (friendId: string, gameMode: 'quiz' | 'sing') => {
+  const handleRemoveFriend = async (friendshipId: string) => {
+    if (!confirm('确定要删除这个好友吗？')) return;
+    
+    setActionLoading(friendshipId);
+    const success = await removeFriend(friendshipId);
+    
+    if (success) {
+      setMessage({ type: 'success', text: '已删除好友' });
+      loadData();
+    }
+    
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleStartPK = async (friendId: string) => {
     if (!user) return;
 
     setActionLoading(`pk-${friendId}`);
-    try {
-      const { error } = await supabase
-        .from('friend_pk_matches')
-        .insert({
-          challenger_id: user.id,
-          opponent_id: friendId,
-          game_mode: gameMode,
-          status: 'pending'
-        });
-
-      if (error) throw error;
-      
-      // 跳转到对应的游戏模式
-      navigate(gameMode === 'quiz' ? '/quiz' : '/sing', {
-        state: { isPK: true, friendId }
-      });
-    } catch (err) {
-      console.error('Error starting PK:', err);
-    } finally {
-      setActionLoading(null);
+    const result = await createChallenge(user.id, friendId, 'quiz', 'normal');
+    
+    if (result.success) {
+      setMessage({ type: 'success', text: 'PK 挑战已发送！' });
+      // 跳转到 PK 页面
+      navigate(`/pk/${result.challengeId}`);
+    } else {
+      setMessage({ type: 'error', text: result.error || '发起挑战失败' });
     }
+    
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
   };
 
-  const renderAvatar = (avatarUrl: string | null, size: 'sm' | 'md' = 'md') => {
+  const handleAcceptChallenge = async (challengeId: string) => {
+    setActionLoading(`challenge-${challengeId}`);
+    const success = await acceptChallenge(challengeId);
+    
+    if (success) {
+      navigate(`/pk/${challengeId}`);
+    } else {
+      setMessage({ type: 'error', text: '接受挑战失败' });
+    }
+    
+    setActionLoading(null);
+  };
+
+  const handleDeclineChallenge = async (challengeId: string) => {
+    setActionLoading(`challenge-${challengeId}`);
+    const success = await declineChallenge(challengeId);
+    
+    if (success) {
+      loadData();
+    }
+    
+    setActionLoading(null);
+  };
+
+  const renderAvatar = (avatarUrl: string | null, username: string | null, size: 'sm' | 'md' = 'md') => {
     const sizeClass = size === 'sm' ? 'w-10 h-10' : 'w-14 h-14';
     const textSize = size === 'sm' ? 'text-lg' : 'text-2xl';
     
@@ -249,9 +215,21 @@ export const Friends = () => {
       }
     }
     
+    if (avatarUrl && !avatarUrl.startsWith('preset:')) {
+      return (
+        <div className={`${sizeClass} rounded-xl overflow-hidden border-2 border-dark`}>
+          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+    
     return (
       <div className={`${sizeClass} rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-2 border-dark`}>
-        <User className={`${size === 'sm' ? 'w-5 h-5' : 'w-7 h-7'} text-white`} />
+        {username ? (
+          <span className="text-white font-bold">{username.charAt(0).toUpperCase()}</span>
+        ) : (
+          <User className={`${size === 'sm' ? 'w-5 h-5' : 'w-7 h-7'} text-white`} />
+        )}
       </div>
     );
   };
@@ -259,50 +237,81 @@ export const Friends = () => {
   // 未登录提示
   if (isGuest || !user) {
     return (
-      <div className="min-h-screen bg-light-bg p-4">
-        <div className="max-w-2xl mx-auto">
-          <button
+      <div className="min-h-screen bg-light-bg pattern-grid-lg">
+        <header className="p-4 flex items-center gap-4 bg-white border-b-3 border-dark shadow-neo-sm sticky top-0 z-30">
+          <MotionButton 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-600 font-bold mb-6 hover:text-primary transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            返回
-          </button>
-
+            <ArrowLeft className="w-5 h-5 text-dark" />
+          </MotionButton>
+          <h1 className="text-xl font-black text-dark">好友</h1>
+        </header>
+        
+        <div className="p-4 max-w-2xl mx-auto">
           <Card className="!p-8 text-center">
             <Users className="w-16 h-16 mx-auto mb-4 text-primary" />
             <h2 className="text-2xl font-black text-dark mb-2">登录后使用好友功能</h2>
-            <p className="text-slate-500 font-bold">添加好友、互相PK，一起进步！</p>
+            <p className="text-slate-500 font-bold mb-6">添加好友、互相PK，一起进步！</p>
+            <Button onClick={() => navigate('/profile')}>
+              去登录
+            </Button>
           </Card>
         </div>
       </div>
     );
   }
 
-  const pendingCount = pendingRequests.filter(r => !r.is_requester).length;
+  const pendingChallengeCount = challenges.filter(c => 
+    c.status === 'pending' && c.opponent_id === user.id
+  ).length;
 
   return (
-    <div className="min-h-screen bg-light-bg p-4 pb-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
+    <div className="min-h-screen bg-light-bg pattern-grid-lg pb-8">
+      {/* Header */}
+      <header className="p-4 flex items-center justify-between bg-white border-b-3 border-dark shadow-neo-sm sticky top-0 z-30">
+        <div className="flex items-center gap-4">
+          <MotionButton 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-600 font-bold hover:text-primary transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            返回
-          </button>
-          
-          <Button
-            variant="secondary"
-            className="!py-2 !px-4"
-            onClick={() => setShowSearch(!showSearch)}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            添加好友
-          </Button>
+            <ArrowLeft className="w-5 h-5 text-dark" />
+          </MotionButton>
+          <h1 className="text-xl font-black text-dark">好友</h1>
         </div>
+        
+        <Button
+          variant="secondary"
+          className="!py-2 !px-4"
+          onClick={() => setShowSearch(!showSearch)}
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          添加好友
+        </Button>
+      </header>
+
+      <div className="p-4 max-w-2xl mx-auto">
+        {/* Message Toast */}
+        <AnimatePresence>
+          {message && (
+            <MotionDiv
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`mb-4 p-4 rounded-xl border-2 border-dark font-bold ${
+                message.type === 'success' 
+                  ? 'bg-secondary/20 text-secondary' 
+                  : 'bg-red-100 text-red-600'
+              }`}
+            >
+              {message.text}
+            </MotionDiv>
+          )}
+        </AnimatePresence>
 
         {/* Search Panel */}
         <AnimatePresence>
@@ -319,7 +328,7 @@ export const Friends = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="搜索用户名或邮箱..."
+                      placeholder="搜索用户名..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -339,22 +348,40 @@ export const Friends = () => {
                         key={result.id}
                         className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border-2 border-dark"
                       >
-                        {renderAvatar(result.avatar_url, 'sm')}
+                        {renderAvatar(result.avatar_url, result.username, 'sm')}
                         <div className="flex-1">
                           <p className="font-black text-dark">{result.username || '未设置昵称'}</p>
-                          <p className="text-sm text-slate-500 font-bold">Lv.{result.level}</p>
+                          <div className="flex items-center gap-1 text-sm text-slate-500 font-bold">
+                            <Zap className="w-3 h-3" />
+                            {result.total_xp} XP
+                          </div>
                         </div>
-                        <Button
-                          variant="primary"
-                          className="!py-2 !px-4"
-                          onClick={() => sendFriendRequest(result.id)}
-                          disabled={actionLoading === result.id}
-                        >
-                          {actionLoading === result.id ? '...' : '添加'}
-                        </Button>
+                        {result.friendship_status === 'none' && (
+                          <Button
+                            variant="primary"
+                            className="!py-2 !px-4"
+                            onClick={() => handleSendRequest(result.id)}
+                            disabled={actionLoading === result.id}
+                          >
+                            {actionLoading === result.id ? '...' : <><Send className="w-4 h-4 mr-1" />添加</>}
+                          </Button>
+                        )}
+                        {result.friendship_status === 'pending_sent' && (
+                          <span className="text-sm text-slate-400 font-bold">已发送</span>
+                        )}
+                        {result.friendship_status === 'pending_received' && (
+                          <span className="text-sm text-amber-500 font-bold">待接受</span>
+                        )}
+                        {result.friendship_status === 'accepted' && (
+                          <span className="text-sm text-secondary font-bold">已是好友</span>
+                        )}
                       </div>
                     ))}
                   </div>
+                )}
+                
+                {searchResults.length === 0 && searchTerm.length >= 2 && !isSearching && (
+                  <p className="text-center text-slate-400 py-4">未找到用户</p>
                 )}
               </Card>
             </MotionDiv>
@@ -365,8 +392,8 @@ export const Friends = () => {
         <div className="flex gap-2 mb-6">
           {[
             { id: 'friends' as TabType, label: '好友', icon: Users, count: friends.length },
-            { id: 'requests' as TabType, label: '请求', icon: Clock, count: pendingCount },
-            { id: 'pk' as TabType, label: 'PK', icon: Swords, count: pkMatches.length },
+            { id: 'requests' as TabType, label: '请求', icon: Clock, count: pendingRequests.length },
+            { id: 'pk' as TabType, label: 'PK', icon: Swords, count: pendingChallengeCount },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -409,30 +436,46 @@ export const Friends = () => {
                 ) : (
                   friends.map((friend, index) => (
                     <MotionDiv
-                      key={friend.friend_id}
+                      key={friend.friendship_id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
                       <Card className="!p-4">
                         <div className="flex items-center gap-4">
-                          {renderAvatar(friend.avatar_url)}
+                          {renderAvatar(friend.avatar_url, friend.username)}
                           <div className="flex-1">
                             <p className="font-black text-dark text-lg">
                               {friend.username || '未设置昵称'}
                             </p>
-                            <p className="text-sm text-slate-500 font-bold">Lv.{friend.level}</p>
+                            <div className="flex items-center gap-2 text-sm text-slate-500 font-bold">
+                              <span>Lv.{friend.current_level}</span>
+                              <span>·</span>
+                              <span className="flex items-center gap-1">
+                                <Zap className="w-3 h-3" />
+                                {friend.total_xp} XP
+                              </span>
+                            </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              variant="secondary"
-                              className="!py-2 !px-3"
-                              onClick={() => startPK(friend.friend_id, 'quiz')}
-                              disabled={actionLoading === `pk-${friend.friend_id}`}
+                            <MotionButton
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="p-2 bg-primary text-white rounded-xl border-2 border-dark"
+                              onClick={() => handleStartPK(friend.user_id)}
+                              disabled={actionLoading === `pk-${friend.user_id}`}
                             >
-                              <Swords className="w-4 h-4 mr-1" />
-                              PK
-                            </Button>
+                              <Swords className="w-5 h-5" />
+                            </MotionButton>
+                            <MotionButton
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="p-2 bg-slate-100 text-slate-500 rounded-xl border-2 border-dark"
+                              onClick={() => handleRemoveFriend(friend.friendship_id)}
+                              disabled={actionLoading === friend.friendship_id}
+                            >
+                              <UserMinus className="w-5 h-5" />
+                            </MotionButton>
                           </div>
                         </div>
                       </Card>
@@ -453,40 +496,42 @@ export const Friends = () => {
                 ) : (
                   pendingRequests.map((request, index) => (
                     <MotionDiv
-                      key={request.friend_id}
+                      key={request.friendship_id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
                       <Card className="!p-4">
                         <div className="flex items-center gap-4">
-                          {renderAvatar(request.avatar_url)}
+                          {renderAvatar(request.avatar_url, request.username)}
                           <div className="flex-1">
                             <p className="font-black text-dark">
                               {request.username || '未设置昵称'}
                             </p>
                             <p className="text-sm text-slate-500 font-bold">
-                              {request.is_requester ? '等待对方接受' : '请求添加你为好友'}
+                              想添加你为好友
                             </p>
                           </div>
-                          {!request.is_requester && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => acceptRequest(request.friend_id)}
-                                disabled={actionLoading === request.friend_id}
-                                className="p-2 bg-secondary rounded-xl border-2 border-dark text-white hover:opacity-90 transition-opacity"
-                              >
-                                <Check className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => rejectRequest(request.friend_id)}
-                                disabled={actionLoading === request.friend_id}
-                                className="p-2 bg-red-500 rounded-xl border-2 border-dark text-white hover:opacity-90 transition-opacity"
-                              >
-                                <X className="w-5 h-5" />
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex gap-2">
+                            <MotionButton
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleAcceptRequest(request.friendship_id)}
+                              disabled={actionLoading === request.friendship_id}
+                              className="p-2 bg-secondary rounded-xl border-2 border-dark text-white"
+                            >
+                              <Check className="w-5 h-5" />
+                            </MotionButton>
+                            <MotionButton
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleRejectRequest(request.friendship_id)}
+                              disabled={actionLoading === request.friendship_id}
+                              className="p-2 bg-red-500 rounded-xl border-2 border-dark text-white"
+                            >
+                              <X className="w-5 h-5" />
+                            </MotionButton>
+                          </div>
                         </div>
                       </Card>
                     </MotionDiv>
@@ -495,62 +540,96 @@ export const Friends = () => {
               </div>
             )}
 
-            {/* PK Matches */}
+            {/* PK Challenges */}
             {activeTab === 'pk' && (
               <div className="space-y-3">
-                {pkMatches.length === 0 ? (
+                {challenges.length === 0 ? (
                   <Card className="!p-8 text-center">
                     <Trophy className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                     <p className="text-slate-500 font-bold">暂无PK对战</p>
                     <p className="text-sm text-slate-400">向好友发起挑战吧！</p>
                   </Card>
                 ) : (
-                  pkMatches.map((match, index) => {
-                    const isChallenger = match.challenger_id === user?.id;
-                    const opponent = isChallenger ? match.opponent_profile : match.challenger_profile;
-                    const myScore = isChallenger ? match.challenger_score : (match.opponent_score || 0);
-                    const theirScore = isChallenger ? (match.opponent_score || 0) : match.challenger_score;
+                  challenges.map((challenge, index) => {
+                    const isChallenger = challenge.challenger_id === user?.id;
+                    const opponent = isChallenger ? challenge.opponent : challenge.challenger;
+                    const isPending = challenge.status === 'pending';
+                    const isMyTurn = isPending && !isChallenger;
                     
                     return (
                       <MotionDiv
-                        key={match.id}
+                        key={challenge.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                       >
-                        <Card 
-                          className="!p-4 cursor-pointer hover:shadow-neo-lg transition-all"
-                          onClick={() => {
-                            if (match.status === 'pending' && !isChallenger) {
-                              navigate(match.game_mode === 'quiz' ? '/quiz' : '/sing', {
-                                state: { isPK: true, matchId: match.id }
-                              });
-                            }
-                          }}
-                        >
+                        <Card className={`!p-4 ${isMyTurn ? '!border-primary' : ''}`}>
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <div className={`px-3 py-1 rounded-full text-xs font-black ${
-                                match.game_mode === 'quiz' 
-                                  ? 'bg-primary/10 text-primary' 
-                                  : 'bg-secondary/10 text-secondary'
-                              }`}>
-                                {match.game_mode === 'quiz' ? '听音' : '哼唱'}
-                              </div>
-                            </div>
+                            {renderAvatar(opponent?.avatar_url || null, opponent?.username || null, 'sm')}
                             <div className="flex-1">
                               <p className="font-black text-dark">
                                 vs {opponent?.username || '未知用户'}
                               </p>
-                              <p className="text-sm text-slate-500 font-bold">
-                                {match.status === 'pending' 
-                                  ? (isChallenger ? '等待对方应战' : '等待你应战')
-                                  : `${myScore} : ${theirScore}`
-                                }
-                              </p>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                  challenge.status === 'pending' 
+                                    ? 'bg-amber-100 text-amber-600' 
+                                    : challenge.status === 'completed'
+                                    ? 'bg-slate-100 text-slate-600'
+                                    : 'bg-primary/10 text-primary'
+                                }`}>
+                                  {challenge.status === 'pending' 
+                                    ? (isChallenger ? '等待应战' : '等待你应战')
+                                    : challenge.status === 'completed'
+                                    ? '已结束'
+                                    : '进行中'
+                                  }
+                                </span>
+                                {challenge.status === 'completed' && (
+                                  <span className="text-slate-500 font-bold">
+                                    {challenge.challenger_score} : {challenge.opponent_score}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            {match.status === 'pending' && !isChallenger && (
-                              <ChevronRight className="w-5 h-5 text-slate-400" />
+                            
+                            {isMyTurn && (
+                              <div className="flex gap-2">
+                                <MotionButton
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleAcceptChallenge(challenge.id)}
+                                  disabled={actionLoading === `challenge-${challenge.id}`}
+                                  className="px-4 py-2 bg-secondary text-white rounded-xl border-2 border-dark font-bold"
+                                >
+                                  应战
+                                </MotionButton>
+                                <MotionButton
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleDeclineChallenge(challenge.id)}
+                                  disabled={actionLoading === `challenge-${challenge.id}`}
+                                  className="p-2 bg-slate-100 text-slate-500 rounded-xl border-2 border-dark"
+                                >
+                                  <X className="w-5 h-5" />
+                                </MotionButton>
+                              </div>
+                            )}
+                            
+                            {challenge.status === 'completed' && challenge.winner_id && (
+                              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                challenge.winner_id === user?.id
+                                  ? 'bg-secondary/20 text-secondary'
+                                  : 'bg-red-100 text-red-500'
+                              }`}>
+                                {challenge.winner_id === user?.id ? '胜利 🎉' : '失败'}
+                              </div>
+                            )}
+                            
+                            {challenge.status === 'completed' && !challenge.winner_id && (
+                              <div className="px-3 py-1 rounded-full text-sm font-bold bg-slate-100 text-slate-500">
+                                平局
+                              </div>
                             )}
                           </div>
                         </Card>
