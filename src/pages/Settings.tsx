@@ -212,7 +212,7 @@ export const Settings = () => {
           username: username.trim() || null,
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
       
       if (error) {
         console.error('[Settings] Error saving:', error);

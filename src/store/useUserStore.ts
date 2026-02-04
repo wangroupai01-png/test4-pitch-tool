@@ -169,8 +169,19 @@ export const useUserStore = create<UserState>()(
       },
       
       signOut: async () => {
-        await supabase.auth.signOut();
-        set({ user: null, profile: null, isGuest: true });
+        try {
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.error('[UserStore] signOut error:', error);
+        }
+        // 无论 API 调用是否成功，都清除本地状态
+        set({ 
+          user: null, 
+          profile: null, 
+          isGuest: true,
+          onboardingCompleted: false,
+          needsOnboarding: false,
+        });
       },
       
       updateGuestScore: (mode, score, level = 1, streak = 0) => {
@@ -201,30 +212,65 @@ export const useUserStore = create<UserState>()(
         const { user, guestData } = get();
         if (!user) return;
         
-        // Sync quiz high score
-        if (guestData.quizHighScore > 0) {
-          await supabase.from('leaderboard').upsert({
-            user_id: user.id,
-            game_mode: 'quiz',
-            best_score: guestData.quizHighScore,
-            best_level: 1,
-            total_games: guestData.totalGames,
-          }, {
-            onConflict: 'user_id,game_mode',
-          });
-        }
+        console.log('[UserStore] Syncing guest data to cloud:', guestData);
         
-        // Sync sing high score
-        if (guestData.singHighScore > 0) {
-          await supabase.from('leaderboard').upsert({
-            user_id: user.id,
-            game_mode: 'sing',
-            best_score: guestData.singHighScore,
-            best_level: guestData.singBestLevel,
-            total_games: guestData.totalGames,
-          }, {
-            onConflict: 'user_id,game_mode',
-          });
+        try {
+          // Sync quiz high score
+          if (guestData.quizHighScore > 0) {
+            await supabase.from('leaderboard').upsert({
+              user_id: user.id,
+              game_mode: 'quiz',
+              best_score: guestData.quizHighScore,
+              best_level: 1,
+              total_games: guestData.totalGames,
+            }, {
+              onConflict: 'user_id,game_mode',
+            });
+          }
+          
+          // Sync sing high score
+          if (guestData.singHighScore > 0) {
+            await supabase.from('leaderboard').upsert({
+              user_id: user.id,
+              game_mode: 'sing',
+              best_score: guestData.singHighScore,
+              best_level: guestData.singBestLevel,
+              total_games: guestData.totalGames,
+            }, {
+              onConflict: 'user_id,game_mode',
+            });
+          }
+          
+          // 同步游客完成的课程数量到 XP（每课程 20 XP）
+          const guestLessonsCompleted = parseInt(localStorage.getItem('guest_completed_lessons') || '0', 10);
+          if (guestLessonsCompleted > 0) {
+            // 检查用户是否已有 XP 记录
+            const { data: existingXp } = await supabase
+              .from('user_xp')
+              .select('total_xp')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            
+            // 如果没有 XP 记录，创建一个基于游客课程的初始 XP
+            if (!existingXp) {
+              const guestXp = guestLessonsCompleted * 20; // 每课程 20 XP
+              await supabase.from('user_xp').upsert({
+                user_id: user.id,
+                total_xp: guestXp,
+                current_level: Math.floor(guestXp / 100) + 1,
+                last_xp_date: new Date().toISOString().split('T')[0],
+              }, { onConflict: 'user_id' });
+              
+              console.log('[UserStore] Synced guest XP:', guestXp);
+            }
+            
+            // 清除游客课程计数（已同步）
+            localStorage.removeItem('guest_completed_lessons');
+          }
+          
+          console.log('[UserStore] Guest data sync completed');
+        } catch (error) {
+          console.error('[UserStore] Failed to sync guest data:', error);
         }
       },
       
