@@ -101,6 +101,7 @@ export const Onboarding = () => {
   const navigate = useNavigate();
   const { playNote } = useAudioPlayer();
   const user = useUserStore((state) => state.user);
+  const setOnboardingCompleted = useUserStore((state) => state.setOnboardingCompleted);
   
   const [step, setStep] = useState<'welcome' | 'test' | 'result' | 'goal'>('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -196,6 +197,9 @@ export const Onboarding = () => {
     
     setIsSaving(false);
     
+    // 更新全局状态
+    setOnboardingCompleted();
+    
     // 跳转到首页（学习中心）
     navigate('/learn');
   };
@@ -217,6 +221,8 @@ export const Onboarding = () => {
     } else {
       localStorage.setItem('onboarding_completed', 'true');
     }
+    // 更新全局状态
+    setOnboardingCompleted();
     navigate('/learn');
   };
 
