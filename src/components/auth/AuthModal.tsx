@@ -48,8 +48,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         const result = await signUpWithEmail(email, password, username);
         if (result.error) {
           setError(result.error);
-        } else {
+        } else if (result.autoLoggedIn) {
+          // 邮箱验证已禁用，直接登录成功
+          onClose();
+        } else if (result.needsEmailVerification) {
+          // 需要邮箱验证
           setSuccess(true);
+        } else {
+          // 其他情况，尝试关闭弹窗
+          onClose();
         }
       }
     } catch (err) {

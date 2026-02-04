@@ -27,7 +27,7 @@ interface UserState {
   // Actions
   initialize: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null; needsOnboarding?: boolean }>;
-  signUpWithEmail: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, username: string) => Promise<{ error: string | null; autoLoggedIn?: boolean; needsEmailVerification?: boolean }>;
   signOut: () => Promise<void>;
   updateGuestScore: (mode: 'quiz' | 'sing', score: number, level?: number, streak?: number) => void;
   syncGuestDataToCloud: () => Promise<void>;
@@ -127,6 +127,12 @@ export const useUserStore = create<UserState>()(
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            // 存储用户名到 metadata，用于创建 profile
+            data: {
+              username,
+            },
+          },
         });
         
         if (error) {
@@ -135,13 +141,31 @@ export const useUserStore = create<UserState>()(
         
         // Create profile
         if (data.user) {
-          await supabase.from('profiles').insert({
+          await supabase.from('profiles').upsert({
             id: data.user.id,
             username,
-          });
+          }, { onConflict: 'id' });
+          
+          // 如果有 session，说明邮箱验证已禁用，直接设置用户状态
+          if (data.session) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+            
+            set({ 
+              user: data.user, 
+              profile: profile || null,
+              isGuest: false 
+            });
+            
+            return { error: null, autoLoggedIn: true };
+          }
         }
         
-        return { error: null };
+        // 如果需要邮箱验证，返回相应提示
+        return { error: null, needsEmailVerification: !data.session };
       },
       
       signOut: async () => {

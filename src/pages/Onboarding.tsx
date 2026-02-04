@@ -196,8 +196,8 @@ export const Onboarding = () => {
     
     setIsSaving(false);
     
-    // 跳转到推荐的首课
-    navigate('/lesson/single_note_1_l1');
+    // 跳转到首页（学习中心）
+    navigate('/learn');
   };
 
   // 跳过引导
