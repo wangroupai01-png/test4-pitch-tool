@@ -26,6 +26,36 @@ git push origin master --force
 
 ## 版本列表
 
+### v3.1-bugfix (2026-02-04)
+**状态**: ✅ Bug 修复完成
+
+**修复内容**:
+- 🔧 **新手引导循环**: 完成引导后正确跳转到学习中心
+- 🔧 **登录弹窗消失**: 弹窗只能通过按钮关闭，不会自动消失
+- 🔧 **设置保存失败**: 添加 onConflict 参数修复 upsert
+- 🔧 **退出登录失败**: 添加错误处理确保状态清除
+- 🔧 **游客数据同步**: 注册登录后同步游客 XP
+
+**踩坑总结**:
+- upsert 必须指定 onConflict (重复犯错)
+- 异步函数必须有 try-catch
+- 状态同步需覆盖 localStorage + Zustand + 数据库
+
+**影响文件**:
+- `src/App.tsx` - GuestOnboardingCheck 简化
+- `src/pages/Onboarding.tsx` - 调用 setOnboardingCompleted
+- `src/pages/Settings.tsx` - 添加 onConflict
+- `src/pages/LessonPage.tsx` - 弹窗时禁用按钮
+- `src/components/auth/LoginPrompt.tsx` - 提高 z-index
+- `src/store/useUserStore.ts` - signOut 错误处理 + syncGuestDataToCloud 扩展
+
+**回滚命令**:
+```powershell
+git checkout v3.0-friends-system
+```
+
+---
+
 ### v3.0-friends-system (2026-01-28)
 **状态**: ✅ 开发完成
 
