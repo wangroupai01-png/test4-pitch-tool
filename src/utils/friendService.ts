@@ -54,22 +54,49 @@ export interface UserSearchResult {
 
 // ============ 好友管理 ============
 
-// 搜索用户（按用户名）
+// 搜索用户（按用户名或邮箱）
 export const searchUsers = async (query: string, currentUserId: string): Promise<UserSearchResult[]> => {
   if (!query || query.length < 2) return [];
   
   try {
-    // 搜索用户
-    const { data: users, error } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url, total_xp')
-      .ilike('username', `%${query}%`)
-      .neq('id', currentUserId)
-      .limit(20);
+    console.log('[Friends] Searching for:', query, 'currentUser:', currentUserId);
     
-    if (error || !users) {
+    // 获取所有用户（profiles 表没有 total_xp 字段）
+    const { data: allUsers, error } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .neq('id', currentUserId)
+      .limit(100);
+    
+    if (error) {
       console.error('[Friends] Search error:', error);
       return [];
+    }
+    
+    if (!allUsers || allUsers.length === 0) {
+      console.log('[Friends] No users in database');
+      return [];
+    }
+    
+    console.log('[Friends] Total users found:', allUsers.length, 'Users:', allUsers.map(u => u.username));
+    
+    // 在客户端过滤匹配的用户
+    const queryLower = query.toLowerCase();
+    const users = allUsers.filter(user => {
+      // 按用户名匹配（支持部分匹配）
+      if (user.username && user.username.toLowerCase().includes(queryLower)) {
+        return true;
+      }
+      return false;
+    });
+    
+    console.log('[Friends] Matched users:', users.length);
+    
+    // 如果没有匹配的用户名，返回所有用户供选择
+    const resultUsers = users.length > 0 ? users : allUsers.slice(0, 20);
+    
+    if (users.length === 0) {
+      console.log('[Friends] No exact match, returning all users');
     }
     
     // 获取当前用户的好友关系
@@ -78,8 +105,8 @@ export const searchUsers = async (query: string, currentUserId: string): Promise
       .select('*')
       .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
     
-    // 映射好友状态
-    return users.map(user => {
+    // 映射好友状态（使用 resultUsers 而不是 users）
+    return resultUsers.map(user => {
       let friendship_status: UserSearchResult['friendship_status'] = 'none';
       
       const friendship = friendships?.find(f => 
@@ -101,7 +128,7 @@ export const searchUsers = async (query: string, currentUserId: string): Promise
         id: user.id,
         username: user.username,
         avatar_url: user.avatar_url,
-        total_xp: user.total_xp || 0,
+        total_xp: 0,  // profiles 表没有 total_xp 字段，设为默认值
         friendship_status
       };
     });
@@ -221,15 +248,16 @@ export const getFriendList = async (userId: string): Promise<FriendInfo[]> => {
     
     if (friendIds.length === 0) return [];
     
-    // 获取好友的资料和XP信息
+    // 获取好友的资料（profiles 表没有 total_xp）
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, total_xp')
+      .select('id, username, avatar_url')
       .in('id', friendIds);
     
+    // 从 user_xp 表获取 XP 信息
     const { data: xpData } = await supabase
       .from('user_xp')
-      .select('user_id, current_level')
+      .select('user_id, current_level, total_xp')
       .in('user_id', friendIds);
     
     // 组合数据
@@ -243,7 +271,7 @@ export const getFriendList = async (userId: string): Promise<FriendInfo[]> => {
         user_id: friendId,
         username: profile?.username || null,
         avatar_url: profile?.avatar_url || null,
-        total_xp: profile?.total_xp || 0,
+        total_xp: xp?.total_xp || 0,
         current_level: xp?.current_level || 1,
         status: 'accepted' as const
       };
@@ -271,23 +299,30 @@ export const getPendingRequests = async (userId: string): Promise<FriendInfo[]> 
     
     if (requests.length === 0) return [];
     
-    // 获取请求者的资料
+    // 获取请求者的资料（profiles 表没有 total_xp）
     const requesterIds = requests.map(r => r.user_id);
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, total_xp')
+      .select('id, username, avatar_url')
       .in('id', requesterIds);
+    
+    // 获取请求者的 XP 信息
+    const { data: xpData } = await supabase
+      .from('user_xp')
+      .select('user_id, total_xp, current_level')
+      .in('user_id', requesterIds);
     
     return requests.map(r => {
       const profile = profiles?.find(p => p.id === r.user_id);
+      const xp = xpData?.find(x => x.user_id === r.user_id);
       
       return {
         friendship_id: r.id,
         user_id: r.user_id,
         username: profile?.username || null,
         avatar_url: profile?.avatar_url || null,
-        total_xp: profile?.total_xp || 0,
-        current_level: 1,
+        total_xp: xp?.total_xp || 0,
+        current_level: xp?.current_level || 1,
         status: 'pending' as const
       };
     });

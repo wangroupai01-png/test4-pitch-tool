@@ -233,7 +233,7 @@ export const FriendPK = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
-          onClick={() => navigate('/friends')}
+          onClick={() => navigate('/friends', { replace: true })}
         >
           <ArrowLeft className="w-5 h-5 text-dark" />
         </MotionButton>
@@ -387,7 +387,7 @@ export const FriendPK = () => {
               <Button 
                 variant="secondary" 
                 className="mt-8"
-                onClick={() => navigate('/friends')}
+                onClick={() => navigate('/friends', { replace: true })}
               >
                 返回好友页面
               </Button>
@@ -438,13 +438,13 @@ export const FriendPK = () => {
                 <Button 
                   variant="secondary" 
                   className="flex-1"
-                  onClick={() => navigate('/friends')}
+                  onClick={() => navigate('/friends', { replace: true })}
                 >
                   返回好友
                 </Button>
                 <Button 
                   className="flex-1"
-                  onClick={() => navigate('/compete')}
+                  onClick={() => navigate('/compete', { replace: true })}
                 >
                   继续挑战
                 </Button>

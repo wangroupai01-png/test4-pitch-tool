@@ -243,7 +243,7 @@ export const Friends = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
           >
             <ArrowLeft className="w-5 h-5 text-dark" />
           </MotionButton>
@@ -277,7 +277,7 @@ export const Friends = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="p-2 bg-slate-100 rounded-xl border-2 border-dark"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
           >
             <ArrowLeft className="w-5 h-5 text-dark" />
           </MotionButton>

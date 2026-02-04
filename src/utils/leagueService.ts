@@ -67,7 +67,7 @@ export const calculateLeagueForXP = (totalXP: number, configs: LeagueConfig[]): 
   return sorted.find(c => totalXP >= c.required_xp) || configs[0];
 };
 
-// 获取用户联赛状态（优先从 profiles 获取 XP）
+// 获取用户联赛状态（从 user_xp 获取 XP）
 export const getUserLeagueStatus = async (userId: string): Promise<{
   league: LeagueConfig;
   totalXP: number;
@@ -77,14 +77,14 @@ export const getUserLeagueStatus = async (userId: string): Promise<{
 }> => {
   const configs = await getLeagueConfigs();
   
-  // 从 profiles 获取用户 XP
-  const { data: profile } = await supabase
-    .from('profiles')
+  // 从 user_xp 获取用户 XP
+  const { data: userXp } = await supabase
+    .from('user_xp')
     .select('total_xp')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .maybeSingle();
   
-  const totalXP = profile?.total_xp || 0;
+  const totalXP = userXp?.total_xp || 0;
   const currentLeague = calculateLeagueForXP(totalXP, configs);
   
   // 找到下一个联赛
@@ -106,45 +106,56 @@ export const getUserLeagueStatus = async (userId: string): Promise<{
   };
 };
 
-// 获取全服排行榜（基于 profiles.total_xp）
+// 获取全服排行榜（基于 user_xp.total_xp）
 export const getGlobalLeaderboard = async (limit: number = 20): Promise<LeaderboardUser[]> => {
   const configs = await getLeagueConfigs();
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, avatar_url, total_xp')
+  // 从 user_xp 表获取 XP 排名
+  const { data: xpData, error: xpError } = await supabase
+    .from('user_xp')
+    .select('user_id, total_xp')
     .order('total_xp', { ascending: false })
     .limit(limit);
   
-  if (error) {
-    console.error('[League] Error fetching leaderboard:', error);
+  if (xpError || !xpData || xpData.length === 0) {
+    console.error('[League] Error fetching XP data:', xpError);
     return [];
   }
   
-  return (data || []).map((user, index) => ({
-    user_id: user.id,
-    username: user.username,
-    avatar_url: user.avatar_url,
-    total_xp: user.total_xp || 0,
-    current_league: calculateLeagueForXP(user.total_xp || 0, configs).id,
-    rank: index + 1
-  }));
+  // 获取用户资料
+  const userIds = xpData.map(x => x.user_id);
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url')
+    .in('id', userIds);
+  
+  return xpData.map((xp, index) => {
+    const profile = profiles?.find(p => p.id === xp.user_id);
+    return {
+      user_id: xp.user_id,
+      username: profile?.username || null,
+      avatar_url: profile?.avatar_url || null,
+      total_xp: xp.total_xp || 0,
+      current_league: calculateLeagueForXP(xp.total_xp || 0, configs).id,
+      rank: index + 1
+    };
+  });
 };
 
-// 获取用户在排行榜中的排名
+// 获取用户在排行榜中的排名（基于 user_xp.total_xp）
 export const getUserRank = async (userId: string): Promise<number> => {
-  const { data: profile } = await supabase
-    .from('profiles')
+  const { data: userXp } = await supabase
+    .from('user_xp')
     .select('total_xp')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .maybeSingle();
   
-  if (!profile) return 0;
+  if (!userXp) return 0;
   
   const { count } = await supabase
-    .from('profiles')
+    .from('user_xp')
     .select('*', { count: 'exact', head: true })
-    .gt('total_xp', profile.total_xp || 0);
+    .gt('total_xp', userXp.total_xp || 0);
   
   return (count || 0) + 1;
 };
