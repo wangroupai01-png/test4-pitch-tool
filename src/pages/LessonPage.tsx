@@ -1515,6 +1515,7 @@ export const LessonPage = () => {
                     <Button 
                       className="w-full py-4 text-lg shadow-neo"
                       onClick={() => navigate(`/lesson/${nextLessonId}`)}
+                      disabled={showLoginPrompt}
                     >
                       下一关 <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
@@ -1525,6 +1526,7 @@ export const LessonPage = () => {
                       variant="secondary" 
                       className="flex-1 py-3"
                       onClick={() => navigate(`/learn/skill/${lesson.skill_id}`)}
+                      disabled={showLoginPrompt}
                     >
                       <List className="w-5 h-5 mr-2" />
                       返回目录
@@ -1542,6 +1544,7 @@ export const LessonPage = () => {
                         setTimeLeft(null);
                         setGameState('playing');
                       }}
+                      disabled={showLoginPrompt}
                     >
                       <RotateCcw className="w-5 h-5 mr-2" />
                       {isPassed() ? '再练一次' : '重试'}
