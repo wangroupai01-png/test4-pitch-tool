@@ -72,7 +72,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose }) => 
       const userIds = leaderboardData.map((e: any) => e.user_id);
       console.log('[Leaderboard] Fetching profiles for:', userIds);
       
-      let usernameMap = new Map<string, string>();
+      const usernameMap = new Map<string, string>();
       try {
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')

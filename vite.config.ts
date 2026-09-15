@@ -62,17 +62,10 @@ export default defineConfig({
             }
           },
           {
-            // Supabase API - 纯网络模式，不缓存（避免中国区超时问题）
+            // Authentication and progress data must always reflect the server.
+            // Do not queue failed mutations: replaying them can duplicate XP.
             urlPattern: /supabase\.co/i,
-            handler: 'NetworkOnly',
-            options: {
-              backgroundSync: {
-                name: 'supabase-queue',
-                options: {
-                  maxRetentionTime: 24 * 60
-                }
-              }
-            }
+            handler: 'NetworkOnly'
           },
           {
             // 页面导航 - 网络优先
@@ -92,6 +85,17 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          motion: ['framer-motion'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

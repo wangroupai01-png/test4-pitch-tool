@@ -178,9 +178,6 @@ export const preloadInstrument = async (
   await preloadCommonNotes(instrument, onProgress);
 };
 
-// Start preloading default piano when module loads
-preloadCommonNotes('acoustic_grand_piano');
-
 interface ActiveNote {
   source: AudioBufferSourceNode;
   gainNode: GainNode;
@@ -205,11 +202,11 @@ export const useAudioPlayer = () => {
             source.stop();
             source.disconnect();
             gainNode.disconnect();
-          } catch (e) {
+          } catch {
             // Ignore
           }
         }, 60);
-      } catch (e) {
+      } catch {
         // Ignore errors
       }
       currentNoteRef.current = null;
@@ -288,7 +285,7 @@ export const useAudioPlayer = () => {
       try {
         source.disconnect();
         gainNode.disconnect();
-      } catch (e) {
+      } catch {
         // Ignore
       }
       if (currentNoteRef.current?.source === source) {

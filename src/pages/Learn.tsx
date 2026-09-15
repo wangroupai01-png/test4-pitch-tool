@@ -36,6 +36,29 @@ interface CacheData {
 let globalCache: CacheData | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存（减少网络请求）
 
+const FALLBACK_SKILLS: Skill[] = [
+  {
+    id: 'fallback-listen',
+    name: '听音辨位',
+    description: '从单音识别开始训练你的音乐耳朵',
+    category: 'basic',
+    icon: '🎧',
+    sort_order: 1,
+    prerequisite_skill_id: null,
+    xp_reward: 0,
+  },
+  {
+    id: 'fallback-sing',
+    name: '音准练习',
+    description: '使用麦克风获得实时音准反馈',
+    category: 'basic',
+    icon: '🎤',
+    sort_order: 2,
+    prerequisite_skill_id: null,
+    xp_reward: 0,
+  },
+];
+
 // 从 localStorage 加载持久化缓存
 const loadPersistentCache = (): CacheData | null => {
   try {
@@ -88,6 +111,7 @@ export const Learn = () => {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
   const { user } = useUserStore();
   const initialLoadDone = useRef(false);
@@ -186,6 +210,8 @@ export const Learn = () => {
         console.error('[Learn] Error loading skills:', skillsError);
         // 如果有缓存，继续使用缓存
         if (!hasCacheData) {
+          setSkills(FALLBACK_SKILLS);
+          setUsingFallback(true);
           setLoading(false);
           setIsRefreshing(false);
         }
@@ -193,6 +219,7 @@ export const Learn = () => {
       }
 
       setSkills(skillsData || []);
+      setUsingFallback(false);
 
       // 加载课程数量（带超时）
       const lessonsPromise = supabase
@@ -211,7 +238,7 @@ export const Learn = () => {
         counts.set(lesson.skill_id, current);
       });
 
-      let progressMap = new Map<string, SkillProgress>();
+      const progressMap = new Map<string, SkillProgress>();
 
       // 如果用户登录，加载进度
       if (user) {
@@ -243,7 +270,7 @@ export const Learn = () => {
               }
             });
           }
-        } catch (progressErr) {
+        } catch {
           console.warn('[Learn] Progress load timeout, using partial data');
         }
       } else {
@@ -264,6 +291,8 @@ export const Learn = () => {
       // 如果没有缓存数据，显示错误状态
       if (!hasCacheData) {
         setLoadError(true);
+        setSkills(FALLBACK_SKILLS);
+        setUsingFallback(true);
       }
     } finally {
       setLoading(false);
@@ -457,6 +486,11 @@ export const Learn = () => {
       )}
 
       {/* Skill Tree */}
+      {usingFallback && (
+        <div role="status" className="mb-6 rounded-xl border-3 border-dark bg-amber-50 p-4 font-medium text-amber-900 shadow-neo-sm">
+          云端课程暂时无法连接。核心练习仍可正常使用，学习进度会在服务恢复后继续加载。
+        </div>
+      )}
       <div className="space-y-8">
         {categoryOrder.map((category, catIndex) => {
           const categorySkills = groupedSkills[category];
@@ -496,7 +530,7 @@ export const Learn = () => {
                       whileTap={!isLocked ? { scale: 0.98 } : {}}
                     >
                       <Link 
-                        to={isLocked ? '#' : `/learn/skill/${skill.id}`}
+                        to={isLocked ? '#' : usingFallback ? '/practice' : `/learn/skill/${skill.id}`}
                         onClick={(e) => isLocked && e.preventDefault()}
                       >
                         <Card 
@@ -581,8 +615,8 @@ export const Learn = () => {
           <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-2xl border-3 border-dark flex items-center justify-center">
             <BookOpen className="w-10 h-10 text-slate-300" />
           </div>
-          <h3 className="font-black text-xl text-dark mb-2">课程正在准备中</h3>
-          <p className="text-slate-500 font-medium">请先在 Supabase 中运行数据库脚本</p>
+          <h3 className="font-black text-xl text-dark mb-2">课程暂时无法加载</h3>
+          <p className="text-slate-500 font-medium">你仍可以前往练习场进行听音和音准练习。</p>
         </Card>
       )}
     </div>

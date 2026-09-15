@@ -59,7 +59,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           onClose();
         }
       }
-    } catch (err) {
+    } catch {
       setError('操作失败，请重试');
     } finally {
       setLoading(false);

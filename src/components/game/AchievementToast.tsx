@@ -93,7 +93,7 @@ interface AchievementNotification {
   achievement: Achievement;
 }
 
-let achievementQueue: AchievementNotification[] = [];
+const achievementQueue: AchievementNotification[] = [];
 let showAchievementCallback: ((achievement: Achievement) => void) | null = null;
 
 export const registerAchievementCallback = (callback: (achievement: Achievement) => void) => {

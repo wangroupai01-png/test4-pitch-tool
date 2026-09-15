@@ -132,8 +132,8 @@ export const searchUsers = async (query: string, currentUserId: string): Promise
         friendship_status
       };
     });
-  } catch (err) {
-    console.error('[Friends] Search exception:', err);
+  } catch (error) {
+    console.error('[Friends] Search exception:', error);
     return [];
   }
 };
@@ -578,7 +578,7 @@ export const getPendingChallengeCount = async (userId: string): Promise<number> 
     
     if (error) return 0;
     return count || 0;
-  } catch (err) {
+  } catch {
     return 0;
   }
 };

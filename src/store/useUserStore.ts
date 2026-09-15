@@ -2,7 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session, Subscription, User } from '@supabase/supabase-js';
+
+let authSubscription: Subscription | null = null;
+let initializePromise: Promise<void> | null = null;
+
+const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};
 
 interface UserState {
   // Auth state
@@ -56,49 +70,50 @@ export const useUserStore = create<UserState>()(
       },
       
       initialize: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session?.user) {
-            // Fetch user profile
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            set({ 
-              user: session.user, 
-              profile: profile || null,
-              isGuest: false,
-              isLoading: false 
-            });
-          } else {
-            set({ isLoading: false, isGuest: true });
-          }
-          
-          // Listen for auth changes
-          supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (initializePromise) return initializePromise;
+
+        initializePromise = (async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+
             if (session?.user) {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              set({ 
-                user: session.user, 
-                profile: profile || null,
-                isGuest: false 
-              });
+              const profile = await fetchProfile(session.user.id);
+              set({ user: session.user, profile, isGuest: false, isLoading: false });
             } else {
-              set({ user: null, profile: null, isGuest: true });
+              set({ user: null, profile: null, isGuest: true, isLoading: false });
             }
-          });
-        } catch (error) {
-          console.error('Failed to initialize auth:', error);
-          set({ isLoading: false });
-        }
+
+            if (!authSubscription) {
+              const handleAuthChange = async (_event: AuthChangeEvent, nextSession: Session | null) => {
+                const nextUser = nextSession?.user ?? null;
+                if (!nextUser) {
+                  set({ user: null, profile: null, isGuest: true, isLoading: false });
+                  return;
+                }
+
+                try {
+                  const profile = await fetchProfile(nextUser.id);
+                  set({ user: nextUser, profile, isGuest: false, isLoading: false });
+                } catch (error) {
+                  console.error('[UserStore] Failed to refresh auth profile:', error);
+                  set({ user: nextUser, profile: null, isGuest: false, isLoading: false });
+                }
+              };
+
+              const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+                void handleAuthChange(event, nextSession);
+              });
+              authSubscription = data.subscription;
+            }
+          } catch (error) {
+            console.error('Failed to initialize auth:', error);
+            set({ isLoading: false });
+          } finally {
+            initializePromise = null;
+          }
+        })();
+
+        return initializePromise;
       },
       
       signInWithEmail: async (email, password) => {
@@ -109,6 +124,16 @@ export const useUserStore = create<UserState>()(
         
         if (error) {
           return { error: error.message };
+        }
+
+        if (data.user) {
+          let profile: UserProfile | null = null;
+          try {
+            profile = await fetchProfile(data.user.id);
+          } catch (profileError) {
+            console.error('[UserStore] Failed to load profile after sign in:', profileError);
+          }
+          set({ user: data.user, profile, isGuest: false, isLoading: false });
         }
         
         // Sync guest data after login
@@ -148,11 +173,7 @@ export const useUserStore = create<UserState>()(
           
           // 如果有 session，说明邮箱验证已禁用，直接设置用户状态
           if (data.session) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
+            const profile = await fetchProfile(data.user.id);
             
             set({ 
               user: data.user, 
@@ -212,12 +233,10 @@ export const useUserStore = create<UserState>()(
         const { user, guestData } = get();
         if (!user) return;
         
-        console.log('[UserStore] Syncing guest data to cloud:', guestData);
-        
         try {
           // Sync quiz high score
           if (guestData.quizHighScore > 0) {
-            await supabase.from('leaderboard').upsert({
+            const { error } = await supabase.from('leaderboard').upsert({
               user_id: user.id,
               game_mode: 'quiz',
               best_score: guestData.quizHighScore,
@@ -226,11 +245,12 @@ export const useUserStore = create<UserState>()(
             }, {
               onConflict: 'user_id,game_mode',
             });
+            if (error) throw error;
           }
           
           // Sync sing high score
           if (guestData.singHighScore > 0) {
-            await supabase.from('leaderboard').upsert({
+            const { error } = await supabase.from('leaderboard').upsert({
               user_id: user.id,
               game_mode: 'sing',
               best_score: guestData.singHighScore,
@@ -239,6 +259,7 @@ export const useUserStore = create<UserState>()(
             }, {
               onConflict: 'user_id,game_mode',
             });
+            if (error) throw error;
           }
           
           // 同步游客完成的课程数量到 XP（每课程 20 XP）
@@ -254,23 +275,31 @@ export const useUserStore = create<UserState>()(
             // 如果没有 XP 记录，创建一个基于游客课程的初始 XP
             if (!existingXp) {
               const guestXp = guestLessonsCompleted * 20; // 每课程 20 XP
-              await supabase.from('user_xp').upsert({
+              const { error } = await supabase.from('user_xp').upsert({
                 user_id: user.id,
                 total_xp: guestXp,
                 current_level: Math.floor(guestXp / 100) + 1,
                 last_xp_date: new Date().toISOString().split('T')[0],
               }, { onConflict: 'user_id' });
-              
-              console.log('[UserStore] Synced guest XP:', guestXp);
+              if (error) throw error;
             }
             
             // 清除游客课程计数（已同步）
             localStorage.removeItem('guest_completed_lessons');
           }
           
-          console.log('[UserStore] Guest data sync completed');
+          set({
+            guestData: {
+              quizHighScore: 0,
+              quizBestStreak: 0,
+              singHighScore: 0,
+              singBestLevel: 0,
+              totalGames: 0,
+            },
+          });
         } catch (error) {
           console.error('[UserStore] Failed to sync guest data:', error);
+          // 保留本地数据，下一次登录或刷新时可以重试。
         }
       },
       
@@ -290,7 +319,7 @@ export const useUserStore = create<UserState>()(
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
           if (profile) {
             set({ profile });

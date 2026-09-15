@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { autoCorrelate, getNoteFromFrequency } from '../utils/pitchDetection';
 
 export interface PitchData {
@@ -10,148 +10,162 @@ export interface PitchData {
   clarity: number;
 }
 
-// Median filter for smoothing - removes outliers
-const medianFilter = (values: number[], windowSize: number = 5): number => {
+type BrowserWindow = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+const median = (values: number[], windowSize = 5): number => {
   if (values.length === 0) return 0;
-  if (values.length < windowSize) {
-    const sorted = [...values].sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length / 2)];
-  }
-  const window = values.slice(-windowSize);
-  const sorted = [...window].sort((a, b) => a - b);
-  return sorted[Math.floor(windowSize / 2)];
+  const window = values.slice(-windowSize).sort((a, b) => a - b);
+  return window[Math.floor(window.length / 2)];
 };
 
 export const usePitchDetector = () => {
   const [pitch, setPitch] = useState<PitchData | null>(null);
   const [isListening, setIsListening] = useState(false);
-  
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const requestRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  
-  // For pitch smoothing
-  const recentFrequencies = useRef<number[]>([]);
-  const lastValidPitch = useRef<PitchData | null>(null);
-  const silenceCount = useRef<number>(0);
+  const recentFrequenciesRef = useRef<number[]>([]);
+  const silenceFramesRef = useRef(0);
+  const lastAnalysisAtRef = useRef(0);
 
-  const startListening = useCallback(async () => {
-    try {
-      if (!audioContextRef.current) {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new (AudioContextClass as any)();
+  const analyse = useCallback(() => {
+    const analyserNode = analyserRef.current;
+    const audioContext = audioContextRef.current;
+    if (!analyserNode || !audioContext) return;
+
+    // About 30 analyses per second is visually smooth and avoids running the
+    // O(n²) YIN difference function on every display refresh.
+    const now = performance.now();
+    if (now - lastAnalysisAtRef.current >= 32) {
+      lastAnalysisAtRef.current = now;
+      const buffer = new Float32Array(analyserNode.fftSize);
+      analyserNode.getFloatTimeDomainData(buffer);
+      const frequency = autoCorrelate(buffer, audioContext.sampleRate);
+
+      if (frequency > 0) {
+        const values = recentFrequenciesRef.current;
+        values.push(frequency);
+        if (values.length > 7) values.shift();
+
+        const smoothedFrequency = median(values);
+        const variance = values.reduce(
+          (sum, value) => sum + (value - smoothedFrequency) ** 2,
+          0,
+        ) / values.length;
+
+        setPitch({
+          ...getNoteFromFrequency(smoothedFrequency),
+          clarity: Math.max(0, Math.min(1, 1 - variance / 1000)),
+        });
+        silenceFramesRef.current = 0;
+      } else {
+        silenceFramesRef.current += 1;
+        if (silenceFramesRef.current > 10) {
+          setPitch(null);
+          recentFrequenciesRef.current = [];
+        }
       }
+    }
 
-      // Request higher quality audio for better pitch detection
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+    animationFrameRef.current = requestAnimationFrame(analyse);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    const audioContext = audioContextRef.current;
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    if (audioContext && audioContext.state !== 'closed') {
+      void audioContext.close();
+    }
+
+    setAnalyser(null);
+    setMediaStream(null);
+    setIsListening(false);
+    setPitch(null);
+    setError(null);
+    recentFrequenciesRef.current = [];
+    silenceFramesRef.current = 0;
+  }, []);
+
+  const startListening = useCallback(async (): Promise<boolean> => {
+    if (streamRef.current) return true;
+
+    try {
+      setError(null);
+      setIsStarting(true);
+      const browserWindow = window as BrowserWindow;
+      const AudioContextConstructor = browserWindow.AudioContext ?? browserWindow.webkitAudioContext;
+      if (!AudioContextConstructor) throw new Error('Web Audio API is unavailable');
+
+      const audioContext = new AudioContextConstructor();
+      let requestExpired = false;
+      const mediaRequest = navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-        } 
+        },
       });
+      let timeoutId = 0;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          requestExpired = true;
+          reject(new DOMException('Microphone request timed out', 'TimeoutError'));
+        }, 10_000);
+      });
+      void mediaRequest.then((lateStream) => {
+        if (requestExpired) lateStream.getTracks().forEach((track) => track.stop());
+      });
+      const stream = await Promise.race([mediaRequest, timeout]);
+      window.clearTimeout(timeoutId);
+      const analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 4096;
+      analyserNode.smoothingTimeConstant = 0.8;
+      audioContext.createMediaStreamSource(stream).connect(analyserNode);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyserNode;
       streamRef.current = stream;
-      
-      const audioContext = audioContextRef.current;
-      const analyser = audioContext.createAnalyser();
-      // Larger FFT size for better low-frequency resolution
-      analyser.fftSize = 4096;
-      analyser.smoothingTimeConstant = 0.8;
-      
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-      
-      analyserRef.current = analyser;
-      sourceRef.current = source;
-      
-      // Reset smoothing state
-      recentFrequencies.current = [];
-      lastValidPitch.current = null;
-      silenceCount.current = 0;
-      
+      recentFrequenciesRef.current = [];
+      silenceFramesRef.current = 0;
+      lastAnalysisAtRef.current = 0;
+      setAnalyser(analyserNode);
+      setMediaStream(stream);
       setIsListening(true);
-      updatePitch();
-    } catch (err) {
-      console.error("Error accessing microphone:", err);
+      setIsStarting(false);
+      animationFrameRef.current = requestAnimationFrame(analyse);
+      return true;
+    } catch (caughtError) {
+      console.error('[PitchDetector] Unable to access microphone:', caughtError);
+      const message = caughtError instanceof DOMException && caughtError.name === 'NotAllowedError'
+        ? '麦克风权限被拒绝，请在浏览器设置中允许访问。'
+        : caughtError instanceof DOMException && caughtError.name === 'TimeoutError'
+          ? '等待麦克风权限超时，请检查浏览器权限后重试。'
+          : '无法启动麦克风，请检查设备连接后重试。';
+      setError(message);
+      setIsListening(false);
+      setIsStarting(false);
+      return false;
     }
-  }, []);
+  }, [analyse]);
 
-  const stopListening = useCallback(() => {
-    if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close().then(() => {
-            audioContextRef.current = null;
-        });
-    }
-    setIsListening(false);
-    setPitch(null);
-    recentFrequencies.current = [];
-    lastValidPitch.current = null;
-  }, []);
+  useEffect(() => stopListening, [stopListening]);
 
-  const updatePitch = () => {
-    if (!analyserRef.current || !audioContextRef.current) return;
-    
-    const bufferLength = analyserRef.current.fftSize;
-    const buffer = new Float32Array(bufferLength);
-    analyserRef.current.getFloatTimeDomainData(buffer);
-    
-    const frequency = autoCorrelate(buffer, audioContextRef.current.sampleRate);
-    
-    if (frequency > 0) {
-      // Add to recent frequencies for smoothing
-      recentFrequencies.current.push(frequency);
-      if (recentFrequencies.current.length > 7) {
-        recentFrequencies.current.shift();
-      }
-      
-      // Use median filter to get stable frequency
-      const smoothedFrequency = medianFilter(recentFrequencies.current, 5);
-      
-      const noteData = getNoteFromFrequency(smoothedFrequency);
-      
-      // Calculate clarity based on how consistent recent readings are
-      const variance = recentFrequencies.current.reduce((sum, f) => {
-        return sum + Math.pow(f - smoothedFrequency, 2);
-      }, 0) / recentFrequencies.current.length;
-      const clarity = Math.max(0, Math.min(1, 1 - variance / 1000));
-      
-      const pitchData = { ...noteData, clarity };
-      setPitch(pitchData);
-      lastValidPitch.current = pitchData;
-      silenceCount.current = 0;
-    } else {
-      // Silence detected
-      silenceCount.current++;
-      
-      // Keep showing last pitch briefly, then clear
-      if (silenceCount.current > 10) {
-        setPitch(null);
-        recentFrequencies.current = [];
-      }
-    }
-
-    requestRef.current = requestAnimationFrame(updatePitch);
-  };
-
-  useEffect(() => {
-    return () => {
-      stopListening();
-    };
-  }, []);
-
-  return { 
-    startListening, 
-    stopListening, 
-    isListening, 
-    pitch,
-    analyser: analyserRef.current, // Expose for visualizer
-    mediaStream: streamRef.current, // Expose for recording
-  };
+  return { startListening, stopListening, isListening, isStarting, pitch, analyser, mediaStream, error };
 };
-

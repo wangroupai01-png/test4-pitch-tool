@@ -53,7 +53,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       await navigator.clipboard.writeText(fullText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = fullText;

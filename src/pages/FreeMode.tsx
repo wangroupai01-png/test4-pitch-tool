@@ -20,7 +20,7 @@ interface Recording {
 
 export const FreeMode = () => {
   const navigate = useNavigate();
-  const { startListening, stopListening, isListening, pitch, mediaStream } = usePitchDetector();
+  const { startListening, stopListening, isListening, pitch, mediaStream, error: microphoneError } = usePitchDetector();
   const { playNote } = useAudioPlayer();
   
   // 音域测试状态
@@ -218,6 +218,11 @@ export const FreeMode = () => {
 
   return (
     <div className="min-h-screen bg-light-bg flex flex-col p-3 md:p-8">
+      {microphoneError && (
+        <div role="alert" className="mx-auto mb-4 w-full max-w-4xl rounded-xl border-3 border-dark bg-red-50 p-4 font-bold text-red-700 shadow-neo-sm">
+          {microphoneError}
+        </div>
+      )}
       {/* Header */}
       <header className="mb-4 md:mb-8 flex items-center justify-between gap-2">
         <Button 

@@ -100,9 +100,9 @@ export const QuizMode = () => {
     }
   };
 
-  const saveScore = async (finalScore: number, _finalStreak: number) => {
+  const saveScore = async (finalScore: number, _finalStreak: number, countGame = false) => {
     if (isGuest) {
-      updateGuestScore('quiz', finalScore, 1, _finalStreak);
+      if (countGame) updateGuestScore('quiz', finalScore, 1, _finalStreak);
       if (finalScore > bestScore) {
         setBestScore(finalScore);
       }
@@ -145,7 +145,7 @@ export const QuizMode = () => {
           .from('leaderboard')
           .update({
             best_score: newBestScore,
-            total_games: existing.total_games + 1,
+            total_games: existing.total_games + (countGame ? 1 : 0),
           })
           .eq('id', existing.id)
           .select();
@@ -167,7 +167,7 @@ export const QuizMode = () => {
             game_mode: 'quiz',
             best_score: finalScore,
             best_level: 1,
-            total_games: 1,
+            total_games: countGame ? 1 : 0,
           })
           .select();
         
@@ -270,7 +270,11 @@ export const QuizMode = () => {
       setCorrectAnswers(prev => prev + 1);
       
       // Save score
-      saveScore(newScore, newStreak);
+      void saveScore(
+        newScore,
+        newStreak,
+        questionCount > 0 && currentQuestion >= questionCount,
+      );
       
       confetti({
         particleCount: 100,
@@ -280,7 +284,11 @@ export const QuizMode = () => {
       });
     } else {
       // Wrong - game essentially "ends" this streak, save score
-      saveScore(score, streak);
+      void saveScore(
+        score,
+        streak,
+        questionCount > 0 && currentQuestion >= questionCount,
+      );
       setStreak(0);
     }
     

@@ -46,7 +46,7 @@ export const SingMode = () => {
   const [items, setItems] = useState({ skip: 3, hint: 3, retry: 3 });
   const [showHint, setShowHint] = useState(false); // 是否显示提示效果
   
-  const { startListening, stopListening, isListening, pitch } = usePitchDetector();
+  const { startListening, stopListening, isListening, isStarting, pitch, error: microphoneError } = usePitchDetector();
   const { playNote } = useAudioPlayer();
   const { user, isGuest, updateGuestScore, guestData } = useUserStore();
 
@@ -98,9 +98,9 @@ export const SingMode = () => {
     }
   };
 
-  const saveScore = async (finalScore: number, finalLevel: number) => {
+  const saveScore = async (finalScore: number, finalLevel: number, countGame = false) => {
     if (isGuest) {
-      updateGuestScore('sing', finalScore, finalLevel);
+      if (countGame) updateGuestScore('sing', finalScore, finalLevel);
       if (finalScore > bestScore) {
         setBestScore(finalScore);
       }
@@ -148,7 +148,7 @@ export const SingMode = () => {
           .update({
             best_score: newBestScore,
             best_level: newBestLevel,
-            total_games: existing.total_games + 1,
+            total_games: existing.total_games + (countGame ? 1 : 0),
           })
           .eq('id', existing.id)
           .select();
@@ -171,7 +171,7 @@ export const SingMode = () => {
             game_mode: 'sing',
             best_score: finalScore,
             best_level: finalLevel,
-            total_games: 1,
+            total_games: countGame ? 1 : 0,
           })
           .select();
         
@@ -234,7 +234,7 @@ export const SingMode = () => {
       // 游戏结束
       setGameState('gameover');
       stopListening();
-      saveScore(score, level - 1);
+      void saveScore(score, level - 1, true);
     } else {
       // 还有生命，显示失败提示后继续
       setGameState('failed');
@@ -244,8 +244,9 @@ export const SingMode = () => {
     }
   };
 
-  const startGame = () => {
-    startListening();
+  const startGame = async () => {
+    const started = await startListening();
+    if (!started) return;
     setScore(0);
     setLevel(1);
     setLives(3);
@@ -355,7 +356,7 @@ export const SingMode = () => {
     setScore(newScore);
     
     // Save score after each level
-    saveScore(newScore, level);
+    void saveScore(newScore, level);
     
     if (targetMidi) {
         playNote(getFrequency(targetMidi), 0.2, 'sine');
@@ -385,6 +386,11 @@ export const SingMode = () => {
 
   return (
     <div className="min-h-screen bg-light-bg text-dark p-3 md:p-6 flex flex-col font-sans overflow-hidden">
+      {microphoneError && (
+        <div role="alert" className="mx-auto mb-3 w-full max-w-2xl rounded-xl border-3 border-dark bg-red-50 p-3 text-center font-bold text-red-700 shadow-neo-sm">
+          {microphoneError}
+        </div>
+      )}
       {/* Header */}
       <header className="flex justify-between items-center mb-2 md:mb-4 max-w-6xl mx-auto w-full z-10 relative gap-2">
         <Link to="/practice">
@@ -456,8 +462,9 @@ export const SingMode = () => {
                             根据屏幕提示哼唱出正确的音高。<br/>
                             保持稳定，直到进度条填满！
                         </p>
-                        <Button size="lg" onClick={startGame} className="text-lg md:text-2xl px-8 md:px-12 py-4 md:py-6 shadow-neo-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
-                            开始挑战 <Play className="w-6 h-6 md:w-8 md:h-8 ml-2 md:ml-3 fill-current" />
+                        <Button size="lg" onClick={startGame} disabled={isStarting} className="text-lg md:text-2xl px-8 md:px-12 py-4 md:py-6 shadow-neo-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+                            {isStarting ? '正在请求麦克风…' : '开始挑战'}
+                            {!isStarting && <Play className="w-6 h-6 md:w-8 md:h-8 ml-2 md:ml-3 fill-current" />}
                         </Button>
                         <p className="mt-4 text-sm text-slate-500">
                           ❤️ 3条命 · 难度递进 · 挑战你的极限

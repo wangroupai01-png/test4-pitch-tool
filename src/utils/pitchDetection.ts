@@ -17,11 +17,14 @@ export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number 
   // YIN algorithm implementation
   const yinBufferSize = Math.floor(SIZE / 2);
   const yinBuffer = new Float32Array(yinBufferSize);
+  const minTau = Math.max(2, Math.floor(sampleRate / 1500));
+  const maxTau = Math.min(yinBufferSize - 1, Math.ceil(sampleRate / 60));
   
   // Step 1: Calculate the difference function
-  for (let tau = 0; tau < yinBufferSize; tau++) {
+  for (let tau = 0; tau <= maxTau; tau++) {
     yinBuffer[tau] = 0;
-    for (let i = 0; i < yinBufferSize; i++) {
+    const comparisonLength = Math.min(yinBufferSize, SIZE - tau);
+    for (let i = 0; i < comparisonLength; i++) {
       const delta = buffer[i] - buffer[i + tau];
       yinBuffer[tau] += delta * delta;
     }
@@ -30,7 +33,7 @@ export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number 
   // Step 2: Cumulative mean normalized difference function
   yinBuffer[0] = 1;
   let runningSum = 0;
-  for (let tau = 1; tau < yinBufferSize; tau++) {
+  for (let tau = 1; tau <= maxTau; tau++) {
     runningSum += yinBuffer[tau];
     yinBuffer[tau] *= tau / runningSum;
   }
@@ -40,10 +43,10 @@ export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number 
   const threshold = 0.1;
   let tauEstimate = -1;
   
-  for (let tau = 2; tau < yinBufferSize; tau++) {
+  for (let tau = minTau; tau <= maxTau; tau++) {
     if (yinBuffer[tau] < threshold) {
       // Find the local minimum
-      while (tau + 1 < yinBufferSize && yinBuffer[tau + 1] < yinBuffer[tau]) {
+      while (tau + 1 <= maxTau && yinBuffer[tau + 1] < yinBuffer[tau]) {
         tau++;
       }
       tauEstimate = tau;
@@ -55,7 +58,7 @@ export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number 
   if (tauEstimate === -1) {
     let minVal = Infinity;
     let minTau = -1;
-    for (let tau = 2; tau < yinBufferSize; tau++) {
+    for (let tau = minTau; tau <= maxTau; tau++) {
       if (yinBuffer[tau] < minVal && yinBuffer[tau] < 0.5) {
         minVal = yinBuffer[tau];
         minTau = tau;
@@ -70,7 +73,7 @@ export const autoCorrelate = (buffer: Float32Array, sampleRate: number): number 
   
   // Step 4: Parabolic interpolation for sub-sample precision
   let betterTau = tauEstimate;
-  if (tauEstimate > 0 && tauEstimate < yinBufferSize - 1) {
+  if (tauEstimate > minTau && tauEstimate < maxTau) {
     const s0 = yinBuffer[tauEstimate - 1];
     const s1 = yinBuffer[tauEstimate];
     const s2 = yinBuffer[tauEstimate + 1];

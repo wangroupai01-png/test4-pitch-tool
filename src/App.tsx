@@ -1,29 +1,38 @@
-import { useEffect, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Home } from './pages/Home';
-import { Onboarding } from './pages/Onboarding';
-import { FreeMode } from './pages/FreeMode';
-import { QuizMode } from './pages/QuizMode';
-import { SingMode } from './pages/SingMode';
-import { Learn } from './pages/Learn';
-import { Practice } from './pages/Practice';
-import { Compete } from './pages/Compete';
-import { Profile } from './pages/Profile';
-import { Settings } from './pages/Settings';
-import { SkillDetail } from './pages/SkillDetail';
-import { LessonPage } from './pages/LessonPage';
-import { Achievements } from './pages/Achievements';
-import { DailyChallenge } from './pages/DailyChallenge';
-import { Review } from './pages/Review';
-import { Stats } from './pages/Stats';
-import { Friends } from './pages/Friends';
-import { League } from './pages/League';
-import { FriendPK } from './pages/FriendPK';
 import { TabLayout } from './components/layout/TabLayout';
 import { useUserStore } from './store/useUserStore';
 import { AchievementToast, registerAchievementCallback } from './components/game/AchievementToast';
 import { LevelUpToast, registerLevelUpCallback } from './components/game/LevelUpToast';
 import { XPBar } from './components/game/XPBar';
+
+const Home = lazy(() => import('./pages/Home').then(({ Home }) => ({ default: Home })));
+const Onboarding = lazy(() => import('./pages/Onboarding').then(({ Onboarding }) => ({ default: Onboarding })));
+const FreeMode = lazy(() => import('./pages/FreeMode').then(({ FreeMode }) => ({ default: FreeMode })));
+const QuizMode = lazy(() => import('./pages/QuizMode').then(({ QuizMode }) => ({ default: QuizMode })));
+const SingMode = lazy(() => import('./pages/SingMode').then(({ SingMode }) => ({ default: SingMode })));
+const Learn = lazy(() => import('./pages/Learn').then(({ Learn }) => ({ default: Learn })));
+const Practice = lazy(() => import('./pages/Practice').then(({ Practice }) => ({ default: Practice })));
+const Compete = lazy(() => import('./pages/Compete').then(({ Compete }) => ({ default: Compete })));
+const Profile = lazy(() => import('./pages/Profile').then(({ Profile }) => ({ default: Profile })));
+const Settings = lazy(() => import('./pages/Settings').then(({ Settings }) => ({ default: Settings })));
+const SkillDetail = lazy(() => import('./pages/SkillDetail').then(({ SkillDetail }) => ({ default: SkillDetail })));
+const LessonPage = lazy(() => import('./pages/LessonPage').then(({ LessonPage }) => ({ default: LessonPage })));
+const Achievements = lazy(() => import('./pages/Achievements').then(({ Achievements }) => ({ default: Achievements })));
+const DailyChallenge = lazy(() => import('./pages/DailyChallenge').then(({ DailyChallenge }) => ({ default: DailyChallenge })));
+const Review = lazy(() => import('./pages/Review').then(({ Review }) => ({ default: Review })));
+const Stats = lazy(() => import('./pages/Stats').then(({ Stats }) => ({ default: Stats })));
+const Friends = lazy(() => import('./pages/Friends').then(({ Friends }) => ({ default: Friends })));
+const League = lazy(() => import('./pages/League').then(({ League }) => ({ default: League })));
+const FriendPK = lazy(() => import('./pages/FriendPK').then(({ FriendPK }) => ({ default: FriendPK })));
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
+    <div className="rounded-xl border-3 border-dark bg-white px-5 py-3 font-bold shadow-neo-sm">
+      正在加载练习…
+    </div>
+  </div>
+);
 
 interface Achievement {
   id: string;
@@ -95,12 +104,11 @@ function App() {
     
     // 注册成就回调
     registerAchievementCallback((achievement: Achievement) => {
-      if (currentAchievement) {
-        // 如果正在显示成就，加入队列
-        setAchievementQueue(prev => [...prev, achievement]);
-      } else {
-        setCurrentAchievement(achievement);
-      }
+      setCurrentAchievement((current) => {
+        if (!current) return achievement;
+        setAchievementQueue((queue) => [...queue, achievement]);
+        return current;
+      });
     });
     
     // 注册升级回调
@@ -130,6 +138,7 @@ function App() {
         {/* 游客 Onboarding 检测 */}
         <GuestOnboardingCheck />
         
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Tab Layout Routes */}
           <Route element={<TabLayout />}>
@@ -161,6 +170,7 @@ function App() {
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/learn" replace />} />
         </Routes>
+        </Suspense>
       </div>
     </Router>
   );
