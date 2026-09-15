@@ -72,21 +72,22 @@ declare
   v_new_streak integer := 1;
 begin
   if v_user_id is null then raise exception 'authentication required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
   select * into v_row from public.user_streaks where user_id = v_user_id for update;
 
-  if found and v_row.last_activity_date = v_today then
+  if found and v_row.last_active_date = v_today then
     return jsonb_build_object('currentStreak', v_row.current_streak, 'longestStreak', v_row.longest_streak);
   end if;
-  if found and v_row.last_activity_date = v_today - 1 then
+  if found and v_row.last_active_date = v_today - 1 then
     v_new_streak := coalesce(v_row.current_streak, 0) + 1;
   end if;
 
-  insert into public.user_streaks (user_id, current_streak, longest_streak, last_activity_date, updated_at)
+  insert into public.user_streaks (user_id, current_streak, longest_streak, last_active_date, updated_at)
   values (v_user_id, v_new_streak, v_new_streak, v_today, now())
   on conflict (user_id) do update set
     current_streak = excluded.current_streak,
     longest_streak = greatest(coalesce(user_streaks.longest_streak, 0), excluded.current_streak),
-    last_activity_date = v_today,
+    last_active_date = v_today,
     updated_at = now()
   returning * into v_row;
 
@@ -115,6 +116,7 @@ declare
   v_unlocked text[] := '{}';
 begin
   if v_user_id is null then raise exception 'authentication required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
   select count(*) into v_lessons from public.user_lesson_progress where user_id = v_user_id and status = 'completed';
   select count(*) into v_skills from public.user_skill_progress where user_id = v_user_id and status = 'completed';
   select coalesce(current_streak, 0) into v_streak from public.user_streaks where user_id = v_user_id;
@@ -171,6 +173,7 @@ declare
   v_current_level integer;
 begin
   if v_user_id is null then raise exception 'authentication required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
   if p_score < 0 or p_score > 100 or p_stars < 0 or p_stars > 3 then
     raise exception 'invalid lesson result';
   end if;
@@ -283,6 +286,7 @@ declare
   v_best integer;
 begin
   if v_user_id is null then raise exception 'authentication required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
   if p_score < 0 or p_score > 100 then raise exception 'invalid challenge score'; end if;
   if p_challenge_type not in ('random','quiz','sing','interval','mixed','speed','hard') then
     raise exception 'invalid challenge type';

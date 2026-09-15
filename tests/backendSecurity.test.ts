@@ -43,4 +43,24 @@ describe('backend security architecture', () => {
       expect(migration).toMatch(new RegExp(`revoke all on function public[.]${functionName}[^;]*from public, anon;`));
     }
   });
+
+  it('uses the production streak date column', () => {
+    const migration = read('src/lib/backend-hardening-v1.sql');
+    expect(migration).toContain('last_active_date');
+    expect(migration).not.toContain('last_activity_date');
+  });
+
+  it('serializes reward settlement per user', () => {
+    const migration = read('src/lib/backend-hardening-v1.sql');
+    const lock = 'pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0))';
+    expect(migration.split(lock)).toHaveLength(5);
+  });
+
+  it('removes legacy direct-write policies after the RPC client is live', () => {
+    const lockdown = read('src/lib/backend-hardening-lockdown-v1.sql');
+    expect(lockdown).toContain('drop policy if exists "Users can insert own xp"');
+    expect(lockdown).toContain('drop policy if exists "Users can update own challenges"');
+    expect(lockdown).toContain('drop policy if exists "Users can insert own lesson progress"');
+    expect(lockdown).toContain('-- Rollback reference');
+  });
 });
