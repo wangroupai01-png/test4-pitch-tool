@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles, RefreshCw, Brain, AlertCircle } from 'lucide-react';
+import { BookOpen, Lock, CheckCircle, ChevronRight, Sparkles, RefreshCw, Brain, AlertCircle, CalendarDays, Clock3, Flame } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabase';
 import { useUserStore } from '../store/useUserStore';
 import { getTodayReviewCount } from '../utils/reviewService';
+import { useChallengeProgress } from '../features/challenge30/useChallengeProgress';
+import { getCompletedCount, getUnlockedDay } from '../features/challenge30/progress';
+import { CHALLENGE_DAYS } from '../features/challenge30/content';
 
 interface Skill {
   id: string;
@@ -114,6 +117,10 @@ export const Learn = () => {
   const [usingFallback, setUsingFallback] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
   const { user } = useUserStore();
+  const { progress: challengeProgress } = useChallengeProgress();
+  const challengeDay = getUnlockedDay(challengeProgress);
+  const challengeCompleted = getCompletedCount(challengeProgress);
+  const todayChallenge = CHALLENGE_DAYS[challengeDay - 1];
   const initialLoadDone = useRef(false);
 
   // 加载待复习数量
@@ -436,6 +443,25 @@ export const Learn = () => {
             <p className="text-slate-500 font-bold">系统化学习，解锁你的音乐潜能 🎵</p>
           </div>
         </div>
+      </MotionDiv>
+
+      <MotionDiv initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
+        <Link to="/challenge-30">
+          <div className="overflow-hidden rounded-2xl border-3 border-dark bg-dark text-white shadow-neo transition-transform hover:-translate-y-1">
+            <div className="grid gap-4 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-black text-accent"><Flame className="h-5 w-5" />30 天音感挑战</div>
+                <h2 className="mt-3 text-3xl font-black">第 {challengeDay} 天：{todayChallenge.title}</h2>
+                <p className="mt-2 font-medium text-white/70">{todayChallenge.goal}</p>
+                <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold text-white/75"><span className="flex items-center gap-1.5"><Clock3 className="h-4 w-4" />约 8 分钟</span><span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" />已完成 {challengeCompleted}/30 天</span></div>
+              </div>
+              <div className="flex h-14 items-center justify-center gap-2 rounded-xl border-2 border-white bg-primary px-5 font-black shadow-[4px_4px_0_#fff]">
+                {challengeCompleted ? '继续今日训练' : '开始第 1 天'}<ChevronRight className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="border-t-2 border-white/20 bg-white/10 px-6 py-3"><div className="h-2 overflow-hidden rounded-full bg-white/20"><div className="h-full bg-accent" style={{ width: `${Math.round((challengeCompleted / 30) * 100)}%` }} /></div></div>
+          </div>
+        </Link>
       </MotionDiv>
 
       {/* 复习入口卡片 - 始终显示 */}

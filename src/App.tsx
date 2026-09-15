@@ -25,6 +25,7 @@ const Stats = lazy(() => import('./pages/Stats').then(({ Stats }) => ({ default:
 const Friends = lazy(() => import('./pages/Friends').then(({ Friends }) => ({ default: Friends })));
 const League = lazy(() => import('./pages/League').then(({ League }) => ({ default: League })));
 const FriendPK = lazy(() => import('./pages/FriendPK').then(({ FriendPK }) => ({ default: FriendPK })));
+const Challenge30 = lazy(() => import('./pages/Challenge30').then(({ Challenge30 }) => ({ default: Challenge30 })));
 
 const PageLoader = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -162,6 +163,7 @@ function App() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/league" element={<League />} />
           <Route path="/pk/:challengeId" element={<FriendPK />} />
+          <Route path="/challenge-30" element={<Challenge30 />} />
           <Route path="/onboarding" element={<Onboarding />} />
           
           {/* Legacy Home - redirect to Learn */}
