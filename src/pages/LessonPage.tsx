@@ -13,6 +13,7 @@ import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
 import { showLevelUpToast } from '../components/game/LevelUpToast';
 import { settleLesson } from '../services/settlementService';
+import { useManagedTimeouts } from '../hooks/useManagedTimeouts';
 import { updateReviewSchedule } from '../utils/reviewService';
 import { clearLearnCache } from './Learn';
 import { FeedbackCard } from '../components/game/FeedbackCard';
@@ -84,6 +85,7 @@ export const LessonPage = () => {
   const { user } = useUserStore();
   const { playNote, isReady } = useAudioPlayer();
   const { pitch, isListening, startListening, stopListening } = usePitchDetector();
+  const { schedule, clearAll: clearScheduledWork } = useManagedTimeouts();
   
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,9 +123,12 @@ export const LessonPage = () => {
   const accuracyBufferRef = useRef<number[]>([]); // 用于收集准确度数据
   const singTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const evaluateSingPerformanceRef = useRef<() => void>(() => {});
+  const handleLessonCompleteRef = useRef<(correctCount: number) => void>(() => {});
 
   useEffect(() => {
     if (lessonId) {
+      clearScheduledWork();
       // 重置所有游戏状态
       setCurrentQuestionIndex(0);
       setCorrectCount(0);
@@ -154,13 +159,27 @@ export const LessonPage = () => {
         clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
       }
-      if (isListening) {
-        stopListening();
-      }
-      
-      loadLesson();
+      stopListening();
+
+      const loadLesson = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('lessons')
+            .select('*')
+            .eq('id', lessonId)
+            .single();
+          if (error) throw error;
+          setLesson(data);
+          setGameState(data?.content?.theory ? 'theory' : 'playing');
+        } catch (error) {
+          console.error('[LessonPage] Error loading lesson:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      void loadLesson();
     }
-  }, [lessonId]);
+  }, [clearScheduledWork, lessonId, stopListening]);
 
   // 清理函数
   useEffect(() => {
@@ -171,39 +190,10 @@ export const LessonPage = () => {
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current);
       }
-      if (isListening) {
-        stopListening();
-      }
+      clearScheduledWork();
+      stopListening();
     };
-  }, []);
-
-  const loadLesson = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('id', lessonId)
-        .single();
-
-      if (error) {
-        console.error('[LessonPage] Error loading lesson:', error);
-        return;
-      }
-
-      setLesson(data);
-      
-      // 如果有理论内容，先显示理论页面
-      if (data?.content?.theory) {
-        setGameState('theory');
-      } else {
-        setGameState('playing');
-      }
-    } catch (err) {
-      console.error('[LessonPage] Error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [clearScheduledWork, stopListening]);
 
   const currentQuestion = lesson?.content?.questions?.[currentQuestionIndex];
   const timeLimit = lesson?.content?.timeLimit; // 限时秒数
@@ -256,7 +246,7 @@ export const LessonPage = () => {
         const secondFreq = getFrequency(currentQuestion.baseMidi + currentQuestion.intervalSemitones);
         
         playNote(baseFreq);
-        setTimeout(() => {
+        schedule(() => {
           playNote(secondFreq);
         }, 600); // 间隔 600ms 播放第二个音
       } else if (currentQuestion.type === 'interval_identify' && currentQuestion.rootMidi !== undefined && currentQuestion.interval !== undefined) {
@@ -265,7 +255,7 @@ export const LessonPage = () => {
         const secondFreq = getFrequency(currentQuestion.rootMidi + currentQuestion.interval);
         
         playNote(baseFreq);
-        setTimeout(() => {
+        schedule(() => {
           playNote(secondFreq);
         }, 600);
       } else if ((currentQuestion.type === 'chord' || currentQuestion.type === 'chord_identify') && currentQuestion.rootMidi !== undefined && currentQuestion.chordType) {
@@ -313,7 +303,7 @@ export const LessonPage = () => {
       } else if (currentQuestion.type === 'melody' && currentQuestion.notes) {
         // 旋律听写：依次播放多个音符
         currentQuestion.notes.forEach((midi, index) => {
-          setTimeout(() => {
+          schedule(() => {
             playNote(getFrequency(midi), 0.6);
           }, index * 500); // 每个音符间隔 500ms
         });
@@ -323,7 +313,7 @@ export const LessonPage = () => {
         playNote(frequency);
       }
     }
-  }, [currentQuestion, isReady, playNote]);
+  }, [currentQuestion, isReady, playNote, schedule]);
 
   // ============ Sing 模式专用函数 ============
 
@@ -336,10 +326,10 @@ export const LessonPage = () => {
     playNote(frequency, 1.5); // 播放 1.5 秒
     
     // 演示结束后返回空闲状态
-    setTimeout(() => {
+    schedule(() => {
       setSingState('idle');
     }, 1500);
-  }, [currentQuestion, isReady, playNote]);
+  }, [currentQuestion, isReady, playNote, schedule]);
 
   // 实际开始录音（内部函数）
   const startRecording = useCallback(async () => {
@@ -369,7 +359,7 @@ export const LessonPage = () => {
     singTimerRef.current = setTimeout(() => {
       clearInterval(progressInterval);
       stopListening();
-      evaluateSingPerformance();
+      evaluateSingPerformanceRef.current();
     }, duration);
   }, [currentQuestion, startListening, stopListening]);
 
@@ -383,7 +373,7 @@ export const LessonPage = () => {
     playNote(frequency, 1.5);
     
     // 2. 示范音播放完后，开始倒计时（等1.5秒示范 + 0.5秒回声消失）
-    setTimeout(() => {
+    schedule(() => {
       setSingState('countdown');
       setCountdown(3);
       
@@ -403,7 +393,7 @@ export const LessonPage = () => {
         }
       }, 1000);
     }, 2000); // 1.5秒示范 + 0.5秒缓冲
-  }, [currentQuestion, isReady, playNote, startRecording]);
+  }, [currentQuestion, isReady, playNote, schedule, startRecording]);
 
   // 实时收集音准数据
   useEffect(() => {
@@ -445,7 +435,7 @@ export const LessonPage = () => {
     setShowFeedback(true);
     
     // 延迟后进入下一题
-    setTimeout(() => {
+    schedule(() => {
       if (currentQuestionIndex < (lesson?.content?.questions?.length || 1) - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setSingState('idle');
@@ -454,10 +444,10 @@ export const LessonPage = () => {
         accuracyBufferRef.current = [];
       } else {
         // 完成课程
-        handleLessonComplete(newCorrectCount);
+        handleLessonCompleteRef.current(newCorrectCount);
       }
     }, 2000);
-  }, [correctCount, currentQuestionIndex, lesson]);
+  }, [correctCount, currentQuestionIndex, lesson, schedule]);
 
   // 跳转到下一题或完成课程
   const goToNextQuestion = useCallback((finalCorrectCount: number) => {
@@ -469,7 +459,7 @@ export const LessonPage = () => {
       setFeedbackData(null);
     } else {
       // 完成课程
-      handleLessonComplete(finalCorrectCount);
+      handleLessonCompleteRef.current(finalCorrectCount);
     }
   }, [currentQuestionIndex, lesson]);
 
@@ -509,7 +499,7 @@ export const LessonPage = () => {
 
     // 答对时自动跳转，答错时等待用户手动点击
     if (correct) {
-      setTimeout(() => {
+      schedule(() => {
         goToNextQuestion(newCorrectCount);
       }, 1500);
     }
@@ -567,7 +557,7 @@ export const LessonPage = () => {
 
     // 答对时自动跳转，答错时等待用户手动点击
     if (correct) {
-      setTimeout(() => {
+      schedule(() => {
         goToNextQuestion(newCorrectCount);
       }, 1500);
     }
@@ -604,7 +594,7 @@ export const LessonPage = () => {
         // 检查是否应该显示登录提示
         if (shouldShowLoginPrompt()) {
           // 延迟显示，让用户先看到结果
-          setTimeout(() => {
+          schedule(() => {
             setShowLoginPrompt(true);
             markLoginPromptShown();
           }, 2000);
@@ -625,7 +615,7 @@ export const LessonPage = () => {
       setNextLessonId(settlement.nextLessonId || null);
 
       if (settlement.levelUp && settlement.currentLevel) {
-        setTimeout(() => showLevelUpToast(settlement.currentLevel!), 500);
+        schedule(() => showLevelUpToast(settlement.currentLevel!), 500);
       }
 
       if (settlement.passed) {
@@ -639,6 +629,8 @@ export const LessonPage = () => {
       console.error('[LessonPage] Error saving progress:', err);
     }
   };
+  handleLessonCompleteRef.current = (count) => { void handleLessonComplete(count); };
+  evaluateSingPerformanceRef.current = evaluateSingPerformance;
 
   const getScore = () => {
     if (!lesson) return 0;
@@ -663,7 +655,7 @@ export const LessonPage = () => {
       const intervalSemitones = currentQuestion.intervalSemitones ?? currentQuestion.interval ?? 0;
       
       playNote(getFrequency(baseMidi));
-      setTimeout(() => {
+      schedule(() => {
         playNote(getFrequency(baseMidi + intervalSemitones));
       }, 600);
     } else if (currentQuestion.type === 'chord' || currentQuestion.type === 'chord_identify') {
@@ -688,7 +680,7 @@ export const LessonPage = () => {
       // 单音
       playNote(getFrequency(currentQuestion.targetMidi));
     }
-  }, [currentQuestion, isReady, playNote]);
+  }, [currentQuestion, isReady, playNote, schedule]);
 
   const isPassed = () => {
     if (!lesson) return false;

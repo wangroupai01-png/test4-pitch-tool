@@ -1,7 +1,7 @@
 {
   "name": "melody-challenger",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.3.1",
   "packageManager": "npm@11.11.0",
   "engines": {
     "node": ">=24 <26"
@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "backup:verify": "node scripts/verify-public-backup.mjs",
     "check": "npm run lint && npm run test && npm run build",
     "preview": "vite preview"
   },

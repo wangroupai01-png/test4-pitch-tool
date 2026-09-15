@@ -20,6 +20,7 @@ npm run dev
 ```bash
 npm run check
 npm audit --omit=dev --audit-level=high
+npm run backup:verify
 ```
 
 `npm run check` 依次运行 Lint、单元测试和生产构建。推送到 `master` 或创建 Pull Request 时，GitHub Actions 会执行相同门禁。
@@ -57,3 +58,5 @@ git checkout 3e00445d8d4685d9cd8f8f482728e8967f3e6e90
 ```
 
 数据库脚本位于 `src/lib/`。不要把登录账号、密码、服务端密钥或访问令牌写入仓库。浏览器端 Supabase anon key 是公开客户端标识，数据安全必须由 RLS 和服务端函数保证。
+
+课程配置快照与恢复顺序见 `backups/README.md`。用户身份和进度不进入 Git，依赖 Supabase 平台备份或 `backups/private/` 中受控的本地加密导出。

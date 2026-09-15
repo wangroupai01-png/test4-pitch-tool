@@ -12,6 +12,7 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
 import { settleGameScore } from '../services/settlementService';
+import { useManagedTimeouts } from '../hooks/useManagedTimeouts';
 
 import { ShareButton } from '../components/ui/ShareButton';
 
@@ -49,6 +50,7 @@ export const SingMode = () => {
   
   const { startListening, stopListening, isListening, isStarting, pitch, error: microphoneError } = usePitchDetector();
   const { playNote } = useAudioPlayer();
+  const { schedule, clearAll: clearScheduledWork } = useManagedTimeouts();
   const { user, isGuest, updateGuestScore, guestData } = useUserStore();
 
   // 根据当前关卡获取难度配置
@@ -60,6 +62,7 @@ export const SingMode = () => {
 
   const lastTimeRef = useRef<number>(0);
   const failTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const handleSuccessRef = useRef<() => void>(() => {});
   const FAIL_TIME_LIMIT = 15; // 15秒内未完成算失败
 
   // Load best score on mount
@@ -68,36 +71,20 @@ export const SingMode = () => {
       setBestScore(guestData.singHighScore);
       setBestLevel(guestData.singBestLevel);
     } else if (user) {
-      loadBestScore();
+      const loadBestScore = async () => {
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select('best_score, best_level')
+          .eq('user_id', user.id)
+          .eq('game_mode', 'sing')
+          .maybeSingle();
+        if (error) throw error;
+        setBestScore(data?.best_score || 0);
+        setBestLevel(data?.best_level || 0);
+      };
+      void loadBestScore().catch((error) => console.error('[SingMode] Error loading best score:', error));
     }
-  }, [user, isGuest]);
-
-  const loadBestScore = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('leaderboard')
-        .select('best_score, best_level')
-        .eq('user_id', user.id)
-        .eq('game_mode', 'sing')
-        .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
-      
-      if (error) {
-        console.error('[SingMode] Error loading best score:', error);
-        return;
-      }
-      
-      if (data) {
-        console.log('[SingMode] Loaded best score:', data.best_score, 'level:', data.best_level);
-        setBestScore(data.best_score);
-        setBestLevel(data.best_level);
-      } else {
-        console.log('[SingMode] No existing score found for user');
-      }
-    } catch (err) {
-      console.error('[SingMode] Unexpected error loading best score:', err);
-    }
-  };
+  }, [user, isGuest, guestData.singHighScore, guestData.singBestLevel]);
 
   const saveScore = async (finalScore: number, finalLevel: number, countGame = false) => {
     if (isGuest) {
@@ -161,7 +148,7 @@ export const SingMode = () => {
     }, 1000);
     
     // Play the target note so they know what it sounds like
-    setTimeout(() => {
+    schedule(() => {
         playNote(getFrequency(note), 1.5, 'sine');
     }, 500);
   };
@@ -180,7 +167,7 @@ export const SingMode = () => {
     } else {
       // 还有生命，显示失败提示后继续
       setGameState('failed');
-      setTimeout(() => {
+      schedule(() => {
         nextLevel();
       }, 1500);
     }
@@ -210,7 +197,7 @@ export const SingMode = () => {
     // 不加分，直接进入下一关
     const newLevel = level + 1;
     setLevel(newLevel);
-    setTimeout(() => nextLevel(), 500);
+    schedule(() => nextLevel(), 500);
   };
   
   // 使用提示道具
@@ -223,9 +210,9 @@ export const SingMode = () => {
     // 播放目标音3次
     const freq = getFrequency(targetMidi);
     playNote(freq, 0.8, 'sine');
-    setTimeout(() => playNote(freq, 0.8, 'sine'), 1000);
-    setTimeout(() => playNote(freq, 0.8, 'sine'), 2000);
-    setTimeout(() => setShowHint(false), 3000);
+    schedule(() => playNote(freq, 0.8, 'sine'), 1000);
+    schedule(() => playNote(freq, 0.8, 'sine'), 2000);
+    schedule(() => setShowHint(false), 3000);
   };
   
   // 使用重置道具
@@ -237,7 +224,7 @@ export const SingMode = () => {
     setProgress(0);
     
     // 重新开始当前关卡，不扣命
-    setTimeout(() => {
+    schedule(() => {
       setGameState('playing');
       setProgress(0);
       
@@ -279,7 +266,7 @@ export const SingMode = () => {
       setProgress(prev => {
         const next = prev + increment;
         if (next >= 100) {
-          handleSuccess();
+          handleSuccessRef.current();
           return 100;
         }
         return next;
@@ -313,18 +300,20 @@ export const SingMode = () => {
       colors: ['#2CB67D', '#FF8906', '#7F5AF0']
     });
 
-    setTimeout(() => {
+    schedule(() => {
         setLevel(newLevel);
         nextLevel();
     }, 2000);
   };
+  handleSuccessRef.current = handleSuccess;
 
   useEffect(() => {
     return () => {
       stopListening();
       clearFailTimer();
+      clearScheduledWork();
     };
-  }, []);
+  }, [clearScheduledWork, stopListening]);
 
   return (
     <div className="min-h-screen bg-light-bg text-dark p-3 md:p-6 flex flex-col font-sans overflow-hidden">

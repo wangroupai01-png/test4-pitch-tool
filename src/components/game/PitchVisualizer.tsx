@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { PitchData } from '../../hooks/usePitchDetector';
 
 interface PitchVisualizerProps {
@@ -36,7 +36,7 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
     // Removed: auto-following user pitch which caused jittery movement
   }, [targetMidi]);
 
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -196,14 +196,14 @@ export const PitchVisualizer: React.FC<PitchVisualizerProps> = ({
     }
 
     requestRef.current = requestAnimationFrame(draw);
-  };
+  }, [centerMidi, pitch, isListening, targetMidi]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(draw);
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [centerMidi, pitch, isListening, targetMidi]); 
+  }, [draw]);
 
   return (
     <div 

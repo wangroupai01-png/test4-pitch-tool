@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['vite.svg'],
       manifest: {
         name: 'Melody Challenger - 音高大师',
@@ -75,7 +75,7 @@ export default defineConfig({
               cacheName: 'pages',
               expiration: {
                 maxEntries: 30,
-                maxAgeSeconds: 24 * 60 * 60 // 1天
+                maxAgeSeconds: 60 * 60 // 1小时
               }
             }
           }

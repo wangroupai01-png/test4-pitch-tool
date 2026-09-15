@@ -71,35 +71,19 @@ export const QuizMode = () => {
     if (isGuest) {
       setBestScore(guestData.quizHighScore);
     } else if (user) {
-      loadBestScore();
+      const loadBestScore = async () => {
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select('best_score')
+          .eq('user_id', user.id)
+          .eq('game_mode', 'quiz')
+          .maybeSingle();
+        if (error) throw error;
+        setBestScore(data?.best_score || 0);
+      };
+      void loadBestScore().catch((error) => console.error('[QuizMode] Error loading best score:', error));
     }
-  }, [user, isGuest]);
-
-  const loadBestScore = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('leaderboard')
-        .select('best_score')
-        .eq('user_id', user.id)
-        .eq('game_mode', 'quiz')
-        .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
-      
-      if (error) {
-        console.error('[QuizMode] Error loading best score:', error);
-        return;
-      }
-      
-      if (data) {
-        console.log('[QuizMode] Loaded best score:', data.best_score);
-        setBestScore(data.best_score);
-      } else {
-        console.log('[QuizMode] No existing score found for user');
-      }
-    } catch (err) {
-      console.error('[QuizMode] Unexpected error loading best score:', err);
-    }
-  };
+  }, [user, isGuest, guestData.quizHighScore]);
 
   const saveScore = async (finalScore: number, _finalStreak: number, countGame = false) => {
     if (isGuest) {

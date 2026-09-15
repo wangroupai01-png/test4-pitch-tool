@@ -1,0 +1,3643 @@
+{
+  "exportedAt": "2026-09-15T00:00:00+08:00",
+  "projectRef": "xuxfmetjjfeaexwllpyd",
+  "tables": {
+    "skills": [
+      {
+        "id": "speed_identify",
+        "name": "快速识音",
+        "description": "限时挑战，提升反应速度",
+        "category": "intermediate",
+        "icon": "⚡",
+        "sort_order": 5,
+        "prerequisite_skill_id": "interval_basic",
+        "xp_reward": 150,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_advanced",
+        "name": "音程进阶",
+        "description": "学习六度、七度等高级音程",
+        "category": "intermediate",
+        "icon": "🎵",
+        "sort_order": 6,
+        "prerequisite_skill_id": "interval_basic",
+        "xp_reward": 150,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "pitch_advanced",
+        "name": "音准精修",
+        "description": "音分级精准控制，挑战高难度音准",
+        "category": "intermediate",
+        "icon": "🎤",
+        "sort_order": 7,
+        "prerequisite_skill_id": "pitch_basic",
+        "xp_reward": 150,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_basic",
+        "name": "和弦入门",
+        "description": "认识大三和弦与小三和弦",
+        "category": "intermediate",
+        "icon": "🎹",
+        "sort_order": 8,
+        "prerequisite_skill_id": "interval_basic",
+        "xp_reward": 200,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "complex_intervals",
+        "name": "复杂音程",
+        "description": "掌握增减音程、复合音程的识别与演唱",
+        "category": "advanced",
+        "icon": "🎼",
+        "sort_order": 40,
+        "prerequisite_skill_id": null,
+        "xp_reward": 200,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords",
+        "name": "七和弦",
+        "description": "识别和分辨大七、小七、属七、减七等七和弦",
+        "category": "advanced",
+        "icon": "🎹",
+        "sort_order": 41,
+        "prerequisite_skill_id": null,
+        "xp_reward": 200,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "melody_dictation",
+        "name": "旋律听写",
+        "description": "听记短旋律，训练音乐记忆与记谱能力",
+        "category": "advanced",
+        "icon": "📝",
+        "sort_order": 42,
+        "prerequisite_skill_id": "complex_intervals",
+        "xp_reward": 250,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "professional_sightsing",
+        "name": "专业视唱",
+        "description": "视唱复杂旋律，包含变化音和大跳音程",
+        "category": "advanced",
+        "icon": "🎤",
+        "sort_order": 43,
+        "prerequisite_skill_id": "seventh_chords",
+        "xp_reward": 250,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "single_note_1",
+        "name": "单音识别 I",
+        "description": "学习识别基础音符 Do-Re-Mi-Fa-Sol-La-Ti",
+        "category": "basic",
+        "icon": "🎯",
+        "sort_order": 1,
+        "prerequisite_skill_id": null,
+        "xp_reward": 100,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_2",
+        "name": "单音识别 II",
+        "description": "扩展音域，学习低音区和高音区",
+        "category": "basic",
+        "icon": "🎯",
+        "sort_order": 2,
+        "prerequisite_skill_id": "single_note_1",
+        "xp_reward": 100,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "pitch_basic",
+        "name": "音准入门",
+        "description": "学习跟唱单音，保持稳定音准",
+        "category": "basic",
+        "icon": "🎤",
+        "sort_order": 3,
+        "prerequisite_skill_id": "single_note_1",
+        "xp_reward": 100,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "interval_basic",
+        "name": "音程基础",
+        "description": "认识并区分基础音程",
+        "category": "basic",
+        "icon": "🎵",
+        "sort_order": 4,
+        "prerequisite_skill_id": "single_note_2",
+        "xp_reward": 150,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "single_note_1_l5",
+        "skill_id": "single_note_1",
+        "name": "综合测验",
+        "description": "测试你对C4-C5所有音符的掌握",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 62
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 64
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 65
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 69
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 71
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67, 69, 71, 72],
+              "targetMidi": 72
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_2_l1",
+        "skill_id": "single_note_2",
+        "name": "低音区入门",
+        "description": "学习C3-B3低音区的音符",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 53],
+              "targetMidi": 48
+            },
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 53],
+              "targetMidi": 50
+            },
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 53],
+              "targetMidi": 52
+            },
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 55],
+              "targetMidi": 53
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-24T04:42:17.447126+00:00"
+      },
+      {
+        "id": "single_note_2_l2",
+        "skill_id": "single_note_2",
+        "name": "低音区进阶",
+        "description": "继续学习低音区G3-B3",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [53, 55, 57, 59],
+              "targetMidi": 55
+            },
+            {
+              "type": "identify",
+              "options": [53, 55, 57, 59],
+              "targetMidi": 57
+            },
+            {
+              "type": "identify",
+              "options": [53, 55, 57, 59],
+              "targetMidi": 59
+            },
+            {
+              "type": "identify",
+              "options": [55, 57, 59],
+              "targetMidi": 55
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-24T04:42:17.447126+00:00"
+      },
+      {
+        "id": "interval_basic_l5",
+        "skill_id": "interval_basic",
+        "name": "综合测验",
+        "description": "测试你对所有基础音程的掌握",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "大二度",
+              "options": ["小二度", "大二度", "小三度", "大三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 2
+            },
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["小二度", "大二度", "小三度", "大三度"],
+              "baseMidi": 62,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度", "纯四度", "纯五度"],
+              "baseMidi": 64,
+              "intervalSemitones": 4
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["小三度", "大三度", "纯四度", "纯五度"],
+              "baseMidi": 65,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["纯四度", "纯五度", "纯八度"],
+              "baseMidi": 67,
+              "intervalSemitones": 7
+            },
+            {
+              "type": "interval",
+              "answer": "纯八度",
+              "options": ["纯四度", "纯五度", "纯八度"],
+              "baseMidi": 60,
+              "intervalSemitones": 12
+            },
+            {
+              "type": "interval",
+              "answer": "小二度",
+              "options": ["小二度", "大二度", "小三度"],
+              "baseMidi": 64,
+              "intervalSemitones": 1
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度", "纯四度"],
+              "baseMidi": 69,
+              "intervalSemitones": 4
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-25T16:12:51.226977+00:00"
+      },
+      {
+        "id": "single_note_2_l4",
+        "skill_id": "single_note_2",
+        "name": "高音区进阶",
+        "description": "继续学习高音区F5-B5",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [77, 79, 81, 83],
+              "targetMidi": 77
+            },
+            {
+              "type": "identify",
+              "options": [77, 79, 81, 83],
+              "targetMidi": 79
+            },
+            {
+              "type": "identify",
+              "options": [77, 79, 81, 83],
+              "targetMidi": 81
+            },
+            {
+              "type": "identify",
+              "options": [77, 79, 81, 83],
+              "targetMidi": 83
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-24T04:42:17.447126+00:00"
+      },
+      {
+        "id": "single_note_2_l5",
+        "skill_id": "single_note_2",
+        "name": "全音域测验",
+        "description": "测试你对C3-C6全音域的掌握",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [48, 60, 72],
+              "targetMidi": 48
+            },
+            {
+              "type": "identify",
+              "options": [48, 60, 72],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [48, 60, 72],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [55, 67, 79],
+              "targetMidi": 55
+            },
+            {
+              "type": "identify",
+              "options": [55, 67, 79],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [55, 67, 79],
+              "targetMidi": 79
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-24T04:42:17.447126+00:00"
+      },
+      {
+        "id": "pitch_basic_l2",
+        "skill_id": "pitch_basic",
+        "name": "跟唱单音",
+        "description": "听到音符后准确哼唱出来",
+        "lesson_order": 2,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "hold",
+              "duration": 1500,
+              "targetMidi": 60
+            },
+            {
+              "type": "hold",
+              "duration": 1500,
+              "targetMidi": 62
+            },
+            {
+              "type": "hold",
+              "duration": 1500,
+              "targetMidi": 64
+            },
+            {
+              "type": "hold",
+              "duration": 1500,
+              "targetMidi": 65
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "pitch_basic_l3",
+        "skill_id": "pitch_basic",
+        "name": "保持稳定",
+        "description": "延长哼唱时间，保持音准稳定",
+        "lesson_order": 3,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "hold",
+              "duration": 3000,
+              "targetMidi": 60
+            },
+            {
+              "type": "hold",
+              "duration": 3000,
+              "targetMidi": 64
+            },
+            {
+              "type": "hold",
+              "duration": 3000,
+              "targetMidi": 67
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "speed_l1",
+        "skill_id": "speed_identify",
+        "name": "热身练习",
+        "description": "5秒内识别每个音符，共8题",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [62, 64, 65, 67],
+              "targetMidi": 64
+            },
+            {
+              "type": "identify",
+              "options": [65, 67, 69, 71],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 62
+            },
+            {
+              "type": "identify",
+              "options": [64, 65, 67, 69],
+              "targetMidi": 65
+            },
+            {
+              "type": "identify",
+              "options": [67, 69, 71, 72],
+              "targetMidi": 69
+            },
+            {
+              "type": "identify",
+              "options": [69, 71, 72, 74],
+              "targetMidi": 71
+            },
+            {
+              "type": "identify",
+              "options": [69, 71, 72, 74],
+              "targetMidi": 72
+            }
+          ],
+          "timeLimit": 5,
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "speed_l2",
+        "skill_id": "speed_identify",
+        "name": "提速挑战",
+        "description": "4秒内识别，难度提升",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 61, 62, 63],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [62, 63, 64, 65],
+              "targetMidi": 63
+            },
+            {
+              "type": "identify",
+              "options": [65, 66, 67, 68],
+              "targetMidi": 66
+            },
+            {
+              "type": "identify",
+              "options": [68, 69, 70, 71],
+              "targetMidi": 69
+            },
+            {
+              "type": "identify",
+              "options": [71, 72, 73, 74],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [60, 61, 62, 63],
+              "targetMidi": 61
+            },
+            {
+              "type": "identify",
+              "options": [67, 68, 69, 70],
+              "targetMidi": 68
+            },
+            {
+              "type": "identify",
+              "options": [74, 75, 76, 77],
+              "targetMidi": 75
+            }
+          ],
+          "timeLimit": 4,
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "speed_l3",
+        "skill_id": "speed_identify",
+        "name": "极速模式",
+        "description": "3秒限时，音域扩展",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 53],
+              "targetMidi": 48
+            },
+            {
+              "type": "identify",
+              "options": [53, 55, 57, 59],
+              "targetMidi": 55
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [65, 67, 69, 71],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [72, 74, 76, 77],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [77, 79, 81, 83],
+              "targetMidi": 79
+            },
+            {
+              "type": "identify",
+              "options": [81, 83, 84, 86],
+              "targetMidi": 84
+            },
+            {
+              "type": "identify",
+              "options": [48, 50, 52, 55],
+              "targetMidi": 52
+            }
+          ],
+          "timeLimit": 3,
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "speed_l4",
+        "skill_id": "speed_identify",
+        "name": "闪电反应",
+        "description": "2秒极限挑战，考验你的音感极限",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [62, 64, 65, 67, 69],
+              "targetMidi": 64
+            },
+            {
+              "type": "identify",
+              "options": [64, 65, 67, 69, 71],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [67, 69, 71, 72, 74],
+              "targetMidi": 71
+            },
+            {
+              "type": "identify",
+              "options": [69, 71, 72, 74, 76],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [72, 74, 76, 77, 79],
+              "targetMidi": 76
+            },
+            {
+              "type": "identify",
+              "options": [52, 53, 55, 57, 59],
+              "targetMidi": 55
+            },
+            {
+              "type": "identify",
+              "options": [55, 57, 59, 60, 62],
+              "targetMidi": 59
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65, 67],
+              "targetMidi": 62
+            },
+            {
+              "type": "identify",
+              "options": [62, 64, 65, 67, 69],
+              "targetMidi": 65
+            }
+          ],
+          "timeLimit": 2,
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_adv_l1",
+        "skill_id": "interval_advanced",
+        "name": "六度音程",
+        "description": "学习大六度与小六度的区别",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 60,
+              "intervalSemitones": 8
+            },
+            {
+              "type": "interval",
+              "answer": "大六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 60,
+              "intervalSemitones": 9
+            },
+            {
+              "type": "interval",
+              "answer": "小六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 64,
+              "intervalSemitones": 8
+            },
+            {
+              "type": "interval",
+              "answer": "大六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 65,
+              "intervalSemitones": 9
+            },
+            {
+              "type": "interval",
+              "answer": "小六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 67,
+              "intervalSemitones": 8
+            },
+            {
+              "type": "interval",
+              "answer": "大六度",
+              "options": ["小六度", "大六度"],
+              "baseMidi": 69,
+              "intervalSemitones": 9
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_adv_l2",
+        "skill_id": "interval_advanced",
+        "name": "七度音程",
+        "description": "学习大七度与小七度，感受紧张感",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 60,
+              "intervalSemitones": 10
+            },
+            {
+              "type": "interval",
+              "answer": "大七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 60,
+              "intervalSemitones": 11
+            },
+            {
+              "type": "interval",
+              "answer": "小七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 62,
+              "intervalSemitones": 10
+            },
+            {
+              "type": "interval",
+              "answer": "大七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 64,
+              "intervalSemitones": 11
+            },
+            {
+              "type": "interval",
+              "answer": "小七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 65,
+              "intervalSemitones": 10
+            },
+            {
+              "type": "interval",
+              "answer": "大七度",
+              "options": ["小七度", "大七度"],
+              "baseMidi": 67,
+              "intervalSemitones": 11
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_adv_l3",
+        "skill_id": "interval_advanced",
+        "name": "三全音",
+        "description": "学习最不和谐的音程——增四度/减五度",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "三全音",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 60,
+              "intervalSemitones": 6
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 62,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "三全音",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 64,
+              "intervalSemitones": 6
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 65,
+              "intervalSemitones": 7
+            },
+            {
+              "type": "interval",
+              "answer": "三全音",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 67,
+              "intervalSemitones": 6
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 69,
+              "intervalSemitones": 5
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_adv_l4",
+        "skill_id": "interval_advanced",
+        "name": "混合辨别",
+        "description": "所有音程混合练习",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["小三度", "大三度", "纯四度", "纯五度"],
+              "baseMidi": 60,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "小六度",
+              "options": ["纯五度", "小六度", "大六度", "小七度"],
+              "baseMidi": 60,
+              "intervalSemitones": 8
+            },
+            {
+              "type": "interval",
+              "answer": "小七度",
+              "options": ["大六度", "小七度", "大七度", "纯八度"],
+              "baseMidi": 62,
+              "intervalSemitones": 10
+            },
+            {
+              "type": "interval",
+              "answer": "三全音",
+              "options": ["纯四度", "三全音", "纯五度", "小六度"],
+              "baseMidi": 64,
+              "intervalSemitones": 6
+            },
+            {
+              "type": "interval",
+              "answer": "大六度",
+              "options": ["纯五度", "小六度", "大六度", "小七度"],
+              "baseMidi": 65,
+              "intervalSemitones": 9
+            },
+            {
+              "type": "interval",
+              "answer": "大七度",
+              "options": ["小七度", "大七度", "纯八度"],
+              "baseMidi": 67,
+              "intervalSemitones": 11
+            },
+            {
+              "type": "interval",
+              "answer": "纯八度",
+              "options": ["大七度", "纯八度"],
+              "baseMidi": 60,
+              "intervalSemitones": 12
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度", "纯四度"],
+              "baseMidi": 69,
+              "intervalSemitones": 4
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "interval_adv_l5",
+        "skill_id": "interval_advanced",
+        "name": "音程大师测试",
+        "description": "全部12种音程综合测验",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小二度",
+              "options": ["小二度", "大二度", "小三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 1
+            },
+            {
+              "type": "interval",
+              "answer": "大二度",
+              "options": ["小二度", "大二度", "小三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 2
+            },
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["大二度", "小三度", "大三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度", "纯四度"],
+              "baseMidi": 60,
+              "intervalSemitones": 4
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["大三度", "纯四度", "三全音"],
+              "baseMidi": 60,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "三全音",
+              "options": ["纯四度", "三全音", "纯五度"],
+              "baseMidi": 60,
+              "intervalSemitones": 6
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["三全音", "纯五度", "小六度"],
+              "baseMidi": 60,
+              "intervalSemitones": 7
+            },
+            {
+              "type": "interval",
+              "answer": "小六度",
+              "options": ["纯五度", "小六度", "大六度"],
+              "baseMidi": 60,
+              "intervalSemitones": 8
+            },
+            {
+              "type": "interval",
+              "answer": "大六度",
+              "options": ["小六度", "大六度", "小七度"],
+              "baseMidi": 60,
+              "intervalSemitones": 9
+            },
+            {
+              "type": "interval",
+              "answer": "小七度",
+              "options": ["大六度", "小七度", "大七度"],
+              "baseMidi": 60,
+              "intervalSemitones": 10
+            },
+            {
+              "type": "interval",
+              "answer": "大七度",
+              "options": ["小七度", "大七度", "纯八度"],
+              "baseMidi": 60,
+              "intervalSemitones": 11
+            },
+            {
+              "type": "interval",
+              "answer": "纯八度",
+              "options": ["大七度", "纯八度"],
+              "baseMidi": 60,
+              "intervalSemitones": 12
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "pitch_adv_l1",
+        "skill_id": "pitch_advanced",
+        "name": "扩展音域",
+        "description": "挑战更低和更高的音符",
+        "lesson_order": 1,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing",
+              "targetMidi": 55
+            },
+            {
+              "type": "sing",
+              "targetMidi": 57
+            },
+            {
+              "type": "sing",
+              "targetMidi": 72
+            },
+            {
+              "type": "sing",
+              "targetMidi": 74
+            },
+            {
+              "type": "sing",
+              "targetMidi": 53
+            }
+          ],
+          "tolerance": 80,
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "pitch_adv_l2",
+        "skill_id": "pitch_advanced",
+        "name": "音程跳跃",
+        "description": "连续哼唱不同音高，训练音程感",
+        "lesson_order": 2,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing",
+              "targetMidi": 60
+            },
+            {
+              "type": "sing",
+              "targetMidi": 67
+            },
+            {
+              "type": "sing",
+              "targetMidi": 60
+            },
+            {
+              "type": "sing",
+              "targetMidi": 72
+            },
+            {
+              "type": "sing",
+              "targetMidi": 64
+            }
+          ],
+          "tolerance": 60,
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "pitch_adv_l3",
+        "skill_id": "pitch_advanced",
+        "name": "精准控制",
+        "description": "误差容限更小，考验精准度",
+        "lesson_order": 3,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing",
+              "targetMidi": 60
+            },
+            {
+              "type": "sing",
+              "targetMidi": 62
+            },
+            {
+              "type": "sing",
+              "targetMidi": 64
+            },
+            {
+              "type": "sing",
+              "targetMidi": 65
+            },
+            {
+              "type": "sing",
+              "targetMidi": 67
+            }
+          ],
+          "tolerance": 40,
+          "passThreshold": 0.8
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "pitch_adv_l4",
+        "skill_id": "pitch_advanced",
+        "name": "音准大师",
+        "description": "极限精准度挑战",
+        "lesson_order": 4,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing",
+              "targetMidi": 60
+            },
+            {
+              "type": "sing",
+              "targetMidi": 63
+            },
+            {
+              "type": "sing",
+              "targetMidi": 66
+            },
+            {
+              "type": "sing",
+              "targetMidi": 69
+            },
+            {
+              "type": "sing",
+              "targetMidi": 72
+            },
+            {
+              "type": "sing",
+              "targetMidi": 64
+            }
+          ],
+          "tolerance": 30,
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_l1",
+        "skill_id": "chord_basic",
+        "name": "认识和弦",
+        "description": "学习什么是和弦，听辨大三和弦的明亮感",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 60,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 64,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 65,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 67,
+              "chordType": "major"
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_l2",
+        "skill_id": "chord_basic",
+        "name": "小三和弦",
+        "description": "感受小三和弦的忧郁色彩",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 60,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 62,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 64,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 69,
+              "chordType": "minor"
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_l3",
+        "skill_id": "chord_basic",
+        "name": "大小对比",
+        "description": "区分大三和弦与小三和弦",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 60,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 60,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 65,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 65,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 67,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 69,
+              "chordType": "major"
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 25,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_l4",
+        "skill_id": "chord_basic",
+        "name": "和弦根音",
+        "description": "识别不同根音上的和弦",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord",
+              "answer": "C大三",
+              "options": ["C大三", "D大三", "E大三", "F大三"],
+              "rootMidi": 60,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "D大三",
+              "options": ["C大三", "D大三", "E大三", "F大三"],
+              "rootMidi": 62,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "E小三",
+              "options": ["C小三", "D小三", "E小三", "F小三"],
+              "rootMidi": 64,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "F大三",
+              "options": ["C大三", "D大三", "E大三", "F大三"],
+              "rootMidi": 65,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "G小三",
+              "options": ["E小三", "F小三", "G小三", "A小三"],
+              "rootMidi": 67,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "A小三",
+              "options": ["E小三", "F小三", "G小三", "A小三"],
+              "rootMidi": 69,
+              "chordType": "minor"
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "chord_l5",
+        "skill_id": "chord_basic",
+        "name": "和弦综合测验",
+        "description": "大小三和弦综合测试",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 60,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 62,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 64,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 65,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 67,
+              "chordType": "major"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 69,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "小三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 71,
+              "chordType": "minor"
+            },
+            {
+              "type": "chord",
+              "answer": "大三和弦",
+              "options": ["大三和弦", "小三和弦"],
+              "rootMidi": 72,
+              "chordType": "major"
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-26T15:55:55.617416+00:00"
+      },
+      {
+        "id": "complex_intervals_1",
+        "skill_id": "complex_intervals",
+        "name": "增减音程",
+        "description": "认识增二度、减五度等变化音程",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "增减音程",
+            "content": "增音程比大音程或纯音程多半音，减音程比小音程或纯音程少半音。增四度和减五度都是6个半音，称为三全音。"
+          },
+          "questions": [
+            {
+              "type": "interval_identify",
+              "options": ["大二度", "增二度", "小三度", "减三度"],
+              "interval": 3,
+              "rootMidi": 60,
+              "intervalName": "增二度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "增四度", "减五度", "纯五度"],
+              "interval": 6,
+              "rootMidi": 62,
+              "intervalName": "减五度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯五度", "增五度", "小六度", "大六度"],
+              "interval": 8,
+              "rootMidi": 64,
+              "intervalName": "增五度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["同度", "减二度", "小二度", "大二度"],
+              "interval": 1,
+              "rootMidi": 60,
+              "intervalName": "减二度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "增四度", "减五度", "纯五度"],
+              "interval": 6,
+              "rootMidi": 65,
+              "intervalName": "增四度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["小七度", "大七度", "增七度", "纯八度"],
+              "interval": 11,
+              "rootMidi": 60,
+              "intervalName": "增七度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大二度", "增二度", "减三度", "小三度"],
+              "interval": 2,
+              "rootMidi": 62,
+              "intervalName": "减三度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大六度", "增六度", "小七度", "大七度"],
+              "interval": 9,
+              "rootMidi": 60,
+              "intervalName": "增六度"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "complex_intervals_2",
+        "skill_id": "complex_intervals",
+        "name": "复合音程",
+        "description": "超过八度的音程识别",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "复合音程",
+            "content": "超过八度的音程称为复合音程。九度=二度+八度，十度=三度+八度，以此类推。复合音程保留了单音程的性质特征。"
+          },
+          "questions": [
+            {
+              "type": "interval_identify",
+              "options": ["大二度", "大九度", "小九度", "纯八度"],
+              "interval": 14,
+              "rootMidi": 48,
+              "intervalName": "大九度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大三度", "大十度", "小十度", "纯八度"],
+              "interval": 16,
+              "rootMidi": 48,
+              "intervalName": "大十度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "增四度", "纯十一度", "增十一度"],
+              "interval": 17,
+              "rootMidi": 48,
+              "intervalName": "纯十一度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["小二度", "小九度", "大九度", "纯八度"],
+              "interval": 13,
+              "rootMidi": 48,
+              "intervalName": "小九度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大六度", "大十三度", "小十三度", "纯十二度"],
+              "interval": 21,
+              "rootMidi": 48,
+              "intervalName": "大十三度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯五度", "纯十二度", "增十一度", "大十三度"],
+              "interval": 19,
+              "rootMidi": 48,
+              "intervalName": "纯十二度"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "complex_intervals_3",
+        "skill_id": "complex_intervals",
+        "name": "综合测验",
+        "description": "增减音程与复合音程混合练习",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "增四度", "减五度", "纯五度"],
+              "interval": 6,
+              "rootMidi": 60,
+              "intervalName": "增四度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大二度", "大九度", "小九度", "纯十度"],
+              "interval": 14,
+              "rootMidi": 48,
+              "intervalName": "大九度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯五度", "增五度", "小六度", "大六度"],
+              "interval": 8,
+              "rootMidi": 62,
+              "intervalName": "增五度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "纯十一度", "增十一度", "纯十二度"],
+              "interval": 17,
+              "rootMidi": 48,
+              "intervalName": "纯十一度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["同度", "小二度", "大二度", "增二度"],
+              "interval": 1,
+              "rootMidi": 60,
+              "intervalName": "小二度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["大六度", "大十三度", "小十三度", "纯十二度"],
+              "interval": 21,
+              "rootMidi": 48,
+              "intervalName": "大十三度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["纯四度", "增四度", "减五度", "纯五度"],
+              "interval": 6,
+              "rootMidi": 65,
+              "intervalName": "减五度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["小七度", "大七度", "增七度", "纯八度"],
+              "interval": 11,
+              "rootMidi": 60,
+              "intervalName": "大七度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["小三度", "小十度", "大十度", "纯十一度"],
+              "interval": 15,
+              "rootMidi": 48,
+              "intervalName": "小十度"
+            },
+            {
+              "type": "interval_identify",
+              "options": ["小六度", "大六度", "增六度", "小七度"],
+              "interval": 9,
+              "rootMidi": 60,
+              "intervalName": "大六度"
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords_1",
+        "skill_id": "seventh_chords",
+        "name": "大七和弦",
+        "description": "学习大七和弦的构成与音响特征",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "大七和弦",
+            "content": "大七和弦 = 大三和弦 + 大七度。由根音、大三度、纯五度、大七度组成。音响明亮而带有些许紧张感，常用于爵士和流行音乐。"
+          },
+          "questions": [
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "大七和弦", "属七和弦", "小七和弦"],
+              "rootMidi": 60,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "大七和弦", "属七和弦", "小七和弦"],
+              "rootMidi": 65,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "大七和弦", "小七和弦", "减七和弦"],
+              "rootMidi": 67,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["增三和弦", "大七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 62,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "大七和弦", "小七和弦", "属七和弦"],
+              "rootMidi": 64,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "大七和弦", "减三和弦", "减七和弦"],
+              "rootMidi": 69,
+              "chordType": "maj7"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords_2",
+        "skill_id": "seventh_chords",
+        "name": "小七和弦",
+        "description": "学习小七和弦的构成与音响特征",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "小七和弦",
+            "content": "小七和弦 = 小三和弦 + 小七度。由根音、小三度、纯五度、小七度组成。音响柔和忧郁，是爵士和R&B中最常用的和弦之一。"
+          },
+          "questions": [
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "小七和弦", "大七和弦", "属七和弦"],
+              "rootMidi": 60,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "小七和弦", "大七和弦", "减七和弦"],
+              "rootMidi": 62,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 64,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["增三和弦", "小七和弦", "大七和弦", "属七和弦"],
+              "rootMidi": 65,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "小七和弦", "减七和弦", "大七和弦"],
+              "rootMidi": 67,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 69,
+              "chordType": "min7"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords_3",
+        "skill_id": "seventh_chords",
+        "name": "属七和弦",
+        "description": "学习属七和弦的构成与解决倾向",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "属七和弦",
+            "content": "属七和弦 = 大三和弦 + 小七度。由根音、大三度、纯五度、小七度组成。具有强烈的解决倾向，是调性音乐中最重要的功能和弦。"
+          },
+          "questions": [
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "属七和弦", "大七和弦", "小七和弦"],
+              "rootMidi": 60,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "属七和弦", "小七和弦", "减七和弦"],
+              "rootMidi": 67,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["增三和弦", "属七和弦", "大七和弦", "半减七和弦"],
+              "rootMidi": 62,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "属七和弦", "小七和弦", "大七和弦"],
+              "rootMidi": 65,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "属七和弦", "减七和弦", "小七和弦"],
+              "rootMidi": 69,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "属七和弦", "大七和弦", "减七和弦"],
+              "rootMidi": 64,
+              "chordType": "dom7"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords_4",
+        "skill_id": "seventh_chords",
+        "name": "减七和弦",
+        "description": "学习减七和弦与半减七和弦",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "减七与半减七",
+            "content": "减七和弦由4个小三度叠加组成，具有对称结构。半减七和弦(又称小七降五)由减三和弦+小七度组成，常用于ii-V-I进行。"
+          },
+          "questions": [
+            {
+              "type": "chord_identify",
+              "options": ["减三和弦", "减七和弦", "半减七和弦", "小七和弦"],
+              "rootMidi": 60,
+              "chordType": "dim7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["减三和弦", "半减七和弦", "减七和弦", "小七和弦"],
+              "rootMidi": 62,
+              "chordType": "m7b5"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "减七和弦", "半减七和弦", "属七和弦"],
+              "rootMidi": 64,
+              "chordType": "dim7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["增三和弦", "半减七和弦", "减七和弦", "大七和弦"],
+              "rootMidi": 65,
+              "chordType": "m7b5"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大三和弦", "减七和弦", "小七和弦", "半减七和弦"],
+              "rootMidi": 67,
+              "chordType": "dim7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["小三和弦", "半减七和弦", "减七和弦", "属七和弦"],
+              "rootMidi": 69,
+              "chordType": "m7b5"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 30,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "seventh_chords_5",
+        "skill_id": "seventh_chords",
+        "name": "综合测验",
+        "description": "所有七和弦类型混合辨别",
+        "lesson_order": 5,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "减七和弦"],
+              "rootMidi": 60,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 62,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "减七和弦"],
+              "rootMidi": 65,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "半减七和弦", "属七和弦", "减七和弦"],
+              "rootMidi": 67,
+              "chordType": "dim7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 64,
+              "chordType": "m7b5"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "减七和弦"],
+              "rootMidi": 69,
+              "chordType": "maj7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 60,
+              "chordType": "dom7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "减七和弦", "半减七和弦"],
+              "rootMidi": 62,
+              "chordType": "dim7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "减七和弦"],
+              "rootMidi": 65,
+              "chordType": "min7"
+            },
+            {
+              "type": "chord_identify",
+              "options": ["大七和弦", "小七和弦", "属七和弦", "半减七和弦"],
+              "rootMidi": 67,
+              "chordType": "m7b5"
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "melody_dictation_1",
+        "skill_id": "melody_dictation",
+        "name": "三音旋律",
+        "description": "听记3个音符组成的短旋律",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "melody_dictation",
+          "theory": {
+            "title": "旋律听写入门",
+            "content": "听写旋律时，先注意第一个音和最后一个音，再关注旋律的整体走向(上行、下行、波浪形)，最后确定中间的音。"
+          },
+          "questions": [
+            {
+              "type": "melody",
+              "notes": [60, 62, 64],
+              "options": [
+                ["C", "D", "E"],
+                ["C", "E", "G"],
+                ["D", "E", "F"],
+                ["E", "F", "G"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [64, 62, 60],
+              "options": [
+                ["E", "D", "C"],
+                ["G", "F", "E"],
+                ["F", "E", "D"],
+                ["D", "C", "B"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 64, 67],
+              "options": [
+                ["C", "E", "G"],
+                ["C", "D", "E"],
+                ["D", "F", "A"],
+                ["E", "G", "B"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [67, 65, 64],
+              "options": [
+                ["G", "F", "E"],
+                ["A", "G", "F"],
+                ["F", "E", "D"],
+                ["E", "D", "C"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 65, 69],
+              "options": [
+                ["C", "F", "A"],
+                ["C", "E", "G"],
+                ["D", "G", "B"],
+                ["E", "A", "C"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [72, 69, 67],
+              "options": [
+                ["C5", "A", "G"],
+                ["D5", "B", "A"],
+                ["E5", "C5", "B"],
+                ["B", "G", "F"]
+              ]
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 35,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "melody_dictation_2",
+        "skill_id": "melody_dictation",
+        "name": "四音旋律",
+        "description": "听记4个音符组成的旋律",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "melody_dictation",
+          "questions": [
+            {
+              "type": "melody",
+              "notes": [60, 62, 64, 65],
+              "options": [
+                ["C", "D", "E", "F"],
+                ["D", "E", "F", "G"],
+                ["C", "E", "G", "A"],
+                ["E", "F", "G", "A"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [67, 65, 64, 62],
+              "options": [
+                ["G", "F", "E", "D"],
+                ["A", "G", "F", "E"],
+                ["F", "E", "D", "C"],
+                ["E", "D", "C", "B"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 64, 62, 67],
+              "options": [
+                ["C", "E", "D", "G"],
+                ["C", "D", "E", "G"],
+                ["D", "F", "E", "A"],
+                ["E", "G", "F", "B"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [72, 69, 67, 65],
+              "options": [
+                ["C5", "A", "G", "F"],
+                ["D5", "B", "A", "G"],
+                ["B", "G", "F", "E"],
+                ["A", "F", "E", "D"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 67, 64, 72],
+              "options": [
+                ["C", "G", "E", "C5"],
+                ["C", "E", "G", "C5"],
+                ["D", "A", "F", "D5"],
+                ["E", "B", "G", "E5"]
+              ]
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 35,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "melody_dictation_3",
+        "skill_id": "melody_dictation",
+        "name": "综合测验",
+        "description": "3-5音旋律混合听写",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "melody_dictation",
+          "questions": [
+            {
+              "type": "melody",
+              "notes": [60, 64, 67],
+              "options": [
+                ["C", "E", "G"],
+                ["D", "F", "A"],
+                ["E", "G", "B"],
+                ["F", "A", "C5"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [67, 72, 69, 65],
+              "options": [
+                ["G", "C5", "A", "F"],
+                ["A", "D5", "B", "G"],
+                ["F", "B", "G", "E"],
+                ["E", "A", "F", "D"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 62, 64, 67, 72],
+              "options": [
+                ["C", "D", "E", "G", "C5"],
+                ["D", "E", "F", "A", "D5"],
+                ["C", "E", "G", "B", "E5"],
+                ["E", "F", "G", "B", "E5"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [72, 67, 64, 60],
+              "options": [
+                ["C5", "G", "E", "C"],
+                ["D5", "A", "F", "D"],
+                ["B", "G", "E", "C"],
+                ["A", "F", "D", "B"]
+              ]
+            },
+            {
+              "type": "melody",
+              "notes": [60, 65, 64, 62, 60],
+              "options": [
+                ["C", "F", "E", "D", "C"],
+                ["D", "G", "F", "E", "D"],
+                ["E", "A", "G", "F", "E"],
+                ["C", "E", "D", "B", "C"]
+              ]
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 45,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "professional_sightsing_1",
+        "skill_id": "professional_sightsing",
+        "name": "大跳音程",
+        "description": "演唱六度、七度、八度跳跃",
+        "lesson_order": 1,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "theory": {
+            "title": "大跳演唱技巧",
+            "content": "演唱大跳音程时，先在心中默唱中间经过的音，保持气息支撑，跳跃时保持声带张力稳定。"
+          },
+          "questions": [
+            {
+              "type": "sing_interval",
+              "interval": "大六度",
+              "startMidi": 60,
+              "tolerance": 40,
+              "targetMidi": 69
+            },
+            {
+              "type": "sing_interval",
+              "interval": "大七度",
+              "startMidi": 60,
+              "tolerance": 40,
+              "targetMidi": 71
+            },
+            {
+              "type": "sing_interval",
+              "interval": "纯八度",
+              "startMidi": 60,
+              "tolerance": 35,
+              "targetMidi": 72
+            },
+            {
+              "type": "sing_interval",
+              "interval": "下行纯五度",
+              "startMidi": 67,
+              "tolerance": 40,
+              "targetMidi": 60
+            },
+            {
+              "type": "sing_interval",
+              "interval": "下行八度",
+              "startMidi": 72,
+              "tolerance": 35,
+              "targetMidi": 60
+            },
+            {
+              "type": "sing_interval",
+              "interval": "小六度",
+              "startMidi": 64,
+              "tolerance": 40,
+              "targetMidi": 72
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 35,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "professional_sightsing_2",
+        "skill_id": "professional_sightsing",
+        "name": "变化音",
+        "description": "演唱升降记号的变化音",
+        "lesson_order": 2,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "theory": {
+            "title": "变化音演唱",
+            "content": "变化音(升降号)将音高升高或降低半音。演唱时可以先唱相邻的自然音，再微调到变化音位置。"
+          },
+          "questions": [
+            {
+              "type": "sing_note",
+              "noteName": "#C / bD",
+              "tolerance": 35,
+              "targetMidi": 61
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#D / bE",
+              "tolerance": 35,
+              "targetMidi": 63
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#F / bG",
+              "tolerance": 35,
+              "targetMidi": 66
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#G / bA",
+              "tolerance": 35,
+              "targetMidi": 68
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#A / bB",
+              "tolerance": 35,
+              "targetMidi": 70
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 61, 62, 63, 64],
+              "tolerance": 40,
+              "description": "半音上行"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 35,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "professional_sightsing_3",
+        "skill_id": "professional_sightsing",
+        "name": "复杂旋律",
+        "description": "综合性旋律视唱",
+        "lesson_order": 3,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing_sequence",
+              "notes": [60, 64, 67, 72, 67, 64, 60],
+              "tolerance": 40,
+              "description": "大三和弦分解"
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 63, 67, 72, 67, 63, 60],
+              "tolerance": 40,
+              "description": "小三和弦分解"
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 62, 64, 65, 67, 69, 71, 72],
+              "tolerance": 35,
+              "description": "C大调音阶"
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [72, 71, 69, 67, 65, 64, 62, 60],
+              "tolerance": 35,
+              "description": "C大调下行音阶"
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 67, 64, 72, 69, 65, 62, 60],
+              "tolerance": 45,
+              "description": "跳跃旋律"
+            }
+          ],
+          "passThreshold": 0.75
+        },
+        "xp_reward": 40,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "professional_sightsing_4",
+        "skill_id": "professional_sightsing",
+        "name": "综合测验",
+        "description": "专业级视唱能力检验",
+        "lesson_order": 4,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "sing_interval",
+              "interval": "大七度",
+              "startMidi": 60,
+              "tolerance": 35,
+              "targetMidi": 71
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#F",
+              "tolerance": 30,
+              "targetMidi": 66
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 64, 67, 71, 72],
+              "tolerance": 40,
+              "description": "大七和弦分解"
+            },
+            {
+              "type": "sing_interval",
+              "interval": "下行八度",
+              "startMidi": 72,
+              "tolerance": 30,
+              "targetMidi": 60
+            },
+            {
+              "type": "sing_sequence",
+              "notes": [60, 63, 66, 69, 72],
+              "tolerance": 45,
+              "description": "减七和弦分解"
+            },
+            {
+              "type": "sing_note",
+              "noteName": "#G",
+              "tolerance": 30,
+              "targetMidi": 68
+            }
+          ],
+          "passThreshold": 0.8
+        },
+        "xp_reward": 50,
+        "created_at": "2026-01-30T13:45:28.503943+00:00"
+      },
+      {
+        "id": "single_note_1_l1",
+        "skill_id": "single_note_1",
+        "name": "认识中央C",
+        "description": "学习钢琴中央C的声音",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "认识中央C",
+            "content": "## 什么是中央C？\n\n中央C（C4）是钢琴键盘正中间的那个C音，是音乐学习的重要参考点。\n\n### 为什么叫\"中央C\"？\n\n- 位于钢琴88键的中央位置\n- 在五线谱上，刚好在高音谱号和低音谱号之间\n- MIDI 编号是 60，频率约 261.6Hz\n\n### 如何记住它的声音？\n\n中央C的音高不高不低，听起来非常\"中正\"。它是我们学习其他音符的基准参考点。",
+            "keyPoints": [
+              "中央C = C4 = MIDI 60",
+              "位于钢琴键盘中间位置",
+              "是音乐学习的基准参考音"
+            ],
+            "audioExamples": [
+              {
+                "midi": 60,
+                "label": "中央C (C4)"
+              },
+              {
+                "midi": 48,
+                "label": "低八度C (C3)"
+              },
+              {
+                "midi": 72,
+                "label": "高八度C (C5)"
+              }
+            ],
+            "estimatedTime": 60
+          },
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [59, 60, 61, 62],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [58, 60, 62, 64],
+              "targetMidi": 60
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_1_l2",
+        "skill_id": "single_note_1",
+        "name": "Do-Re-Mi",
+        "description": "学习C-D-E三个音",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "认识Do-Re-Mi",
+            "content": "## Do-Re-Mi是什么？\n\n这是音乐中最基本的三个音符，它们构成了音阶的开始。\n\n### 音名与唱名\n\n- Do = C（哆）\n- Re = D（来）\n- Mi = E（咪）\n\n### 音程关系\n\n- Do到Re：大二度（2个半音）\n- Re到Mi：大二度（2个半音）\n- Do到Mi：大三度（4个半音）\n\n### 记忆技巧\n\nDo-Re-Mi就像电影《音乐之声》里唱的那样，是音乐的起点。",
+            "keyPoints": [
+              "Do-Re-Mi 对应 C-D-E",
+              "Do到Re、Re到Mi都是大二度",
+              "这三个音是音阶的起点"
+            ],
+            "audioExamples": [
+              {
+                "midi": 60,
+                "label": "Do (C4)"
+              },
+              {
+                "midi": 62,
+                "label": "Re (D4)"
+              },
+              {
+                "midi": 64,
+                "label": "Mi (E4)"
+              }
+            ],
+            "estimatedTime": 60
+          },
+          "questions": [
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 62
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64, 65],
+              "targetMidi": 64
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64],
+              "targetMidi": 60
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64],
+              "targetMidi": 62
+            },
+            {
+              "type": "identify",
+              "options": [60, 62, 64],
+              "targetMidi": 64
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_1_l3",
+        "skill_id": "single_note_1",
+        "name": "Fa-Sol-La",
+        "description": "学习F-G-A三个音",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "认识Fa-Sol-La",
+            "content": "## 继续探索音阶\n\n在学会了Do-Re-Mi之后，我们来认识接下来的三个音。\n\n### 音名与唱名\n\n- Fa = F（发）\n- Sol = G（索）\n- La = A（拉）\n\n### 音程特点\n\n- Mi到Fa：小二度（只有1个半音，听起来很近）\n- Fa到Sol：大二度（2个半音）\n- Sol到La：大二度（2个半音）\n\n### 小二度的特殊感觉\n\nMi到Fa只差半音，这是自然大调中最\"紧张\"的地方，听起来有种想要解决的感觉。",
+            "keyPoints": [
+              "Fa-Sol-La 对应 F-G-A",
+              "Mi到Fa是小二度（半音）",
+              "La是标准音A（440Hz）"
+            ],
+            "audioExamples": [
+              {
+                "midi": 65,
+                "label": "Fa (F4)"
+              },
+              {
+                "midi": 67,
+                "label": "Sol (G4)"
+              },
+              {
+                "midi": 69,
+                "label": "La (A4)"
+              }
+            ],
+            "estimatedTime": 60
+          },
+          "questions": [
+            {
+              "type": "identify",
+              "options": [64, 65, 67, 69],
+              "targetMidi": 65
+            },
+            {
+              "type": "identify",
+              "options": [64, 65, 67, 69],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [64, 65, 67, 69],
+              "targetMidi": 69
+            },
+            {
+              "type": "identify",
+              "options": [65, 67, 69],
+              "targetMidi": 65
+            },
+            {
+              "type": "identify",
+              "options": [65, 67, 69],
+              "targetMidi": 67
+            },
+            {
+              "type": "identify",
+              "options": [65, 67, 69],
+              "targetMidi": 69
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_1_l4",
+        "skill_id": "single_note_1",
+        "name": "Ti与高音Do",
+        "description": "学习B和高音C",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "完成音阶：Ti和高音Do",
+            "content": "## 音阶的终点与新起点\n\n学完Ti（Si）和高音Do，你就掌握了完整的一个八度音阶！\n\n### 音名与唱名\n\n- Ti (Si) = B（西）\n- 高音Do = C5\n\n### 特殊的音程关系\n\n- La到Ti：大二度（2个半音）\n- Ti到高音Do：小二度（只有1个半音）\n\n### 导音的魔力\n\nTi（第七级音）被称为\"导音\"，它有强烈的倾向想要\"解决\"到Do。这就是为什么Ti到Do听起来特别\"完满\"。",
+            "keyPoints": [
+              "Ti是导音，想要解决到Do",
+              "Ti到Do是小二度（半音）",
+              "一个八度包含12个半音"
+            ],
+            "audioExamples": [
+              {
+                "midi": 71,
+                "label": "Ti (B4)"
+              },
+              {
+                "midi": 72,
+                "label": "高音Do (C5)"
+              },
+              {
+                "midi": 60,
+                "label": "完整音阶"
+              }
+            ],
+            "estimatedTime": 60
+          },
+          "questions": [
+            {
+              "type": "identify",
+              "options": [69, 71, 72, 74],
+              "targetMidi": 71
+            },
+            {
+              "type": "identify",
+              "options": [69, 71, 72, 74],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [71, 72],
+              "targetMidi": 71
+            },
+            {
+              "type": "identify",
+              "options": [71, 72],
+              "targetMidi": 72
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "single_note_2_l3",
+        "skill_id": "single_note_2",
+        "name": "高音区入门",
+        "description": "学习C5-E5高音区的音符",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "questions": [
+            {
+              "type": "identify",
+              "options": [72, 74, 76, 77],
+              "targetMidi": 72
+            },
+            {
+              "type": "identify",
+              "options": [72, 74, 76, 77],
+              "targetMidi": 74
+            },
+            {
+              "type": "identify",
+              "options": [72, 74, 76, 77],
+              "targetMidi": 76
+            },
+            {
+              "type": "identify",
+              "options": [72, 74, 76],
+              "targetMidi": 72
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-24T04:42:17.447126+00:00"
+      },
+      {
+        "id": "pitch_basic_l1",
+        "skill_id": "pitch_basic",
+        "name": "找到你的音域",
+        "description": "测试你的舒适音域范围",
+        "lesson_order": 1,
+        "lesson_type": "sing",
+        "content": {
+          "type": "sing",
+          "questions": [
+            {
+              "type": "hold",
+              "duration": 2000,
+              "targetMidi": 60
+            },
+            {
+              "type": "hold",
+              "duration": 2000,
+              "targetMidi": 55
+            },
+            {
+              "type": "hold",
+              "duration": 2000,
+              "targetMidi": 65
+            }
+          ],
+          "passThreshold": 0.6
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00"
+      },
+      {
+        "id": "interval_basic_l1",
+        "skill_id": "interval_basic",
+        "name": "认识音程",
+        "description": "学习什么是音程，从最简单的纯一度和纯八度开始",
+        "lesson_order": 1,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "什么是音程？",
+            "content": "## 音程的定义\n\n音程是指两个音之间的距离。就像用尺子量长度一样，我们用\"度\"来衡量两个音的远近。\n\n### 最简单的两个音程\n\n- 纯一度：同一个音（距离为0）\n- 纯八度：相隔12个半音（高/低一个八度）\n\n### 如何听辨？\n\n- 纯一度：两个音完全一样，没有变化\n- 纯八度：听起来\"一样但不一样\"，一个高一个低\n\n### 有趣的现象\n\n纯八度的两个音虽然音高不同，但给人的感觉非常相似。这就是为什么我们把它们叫做相同的音名！",
+            "keyPoints": [
+              "音程 = 两个音之间的距离",
+              "纯一度 = 同一个音",
+              "纯八度 = 相隔12个半音"
+            ],
+            "audioExamples": [
+              {
+                "midi": 60,
+                "label": "纯一度：同音",
+                "secondMidi": 60
+              },
+              {
+                "midi": 60,
+                "label": "纯八度：高八度",
+                "secondMidi": 72
+              },
+              {
+                "midi": 72,
+                "label": "纯八度：低八度",
+                "secondMidi": 60
+              }
+            ],
+            "estimatedTime": 90
+          },
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "纯一度",
+              "options": ["纯一度", "纯八度"],
+              "baseMidi": 60,
+              "intervalSemitones": 0
+            },
+            {
+              "type": "interval",
+              "answer": "纯八度",
+              "options": ["纯一度", "纯八度"],
+              "baseMidi": 64,
+              "intervalSemitones": 12
+            },
+            {
+              "type": "interval",
+              "answer": "纯一度",
+              "options": ["纯一度", "纯八度"],
+              "baseMidi": 67,
+              "intervalSemitones": 0
+            },
+            {
+              "type": "interval",
+              "answer": "纯八度",
+              "options": ["纯一度", "纯八度"],
+              "baseMidi": 62,
+              "intervalSemitones": 12
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-25T16:12:51.226977+00:00"
+      },
+      {
+        "id": "interval_basic_l2",
+        "skill_id": "interval_basic",
+        "name": "大二度与小二度",
+        "description": "学习区分相邻两个音的距离",
+        "lesson_order": 2,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "二度音程：大二度与小二度",
+            "content": "## 最近的邻居\n\n二度是相邻两个音之间的关系，是最小的音程距离（不含一度）。\n\n### 两种二度\n\n- 小二度：1个半音（如 E-F, B-C）\n- 大二度：2个半音（如 C-D, D-E）\n\n### 听觉特点\n\n- 小二度听起来很\"紧张\"，有种不协和感\n- 大二度相对\"舒缓\"，常用于旋律进行\n\n### 记忆口诀\n\n- 小二度：像《大白鲨》主题曲的开头两个音\n- 大二度：像《两只老虎》的前两个音",
+            "keyPoints": [
+              "小二度 = 1个半音（听起来紧张）",
+              "大二度 = 2个半音（听起来舒缓）",
+              "自然音阶中E-F和B-C是小二度"
+            ],
+            "audioExamples": [
+              {
+                "midi": 64,
+                "label": "小二度：E-F",
+                "secondMidi": 65
+              },
+              {
+                "midi": 60,
+                "label": "大二度：C-D",
+                "secondMidi": 62
+              },
+              {
+                "midi": 71,
+                "label": "小二度：B-C",
+                "secondMidi": 72
+              }
+            ],
+            "estimatedTime": 90
+          },
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 60,
+              "intervalSemitones": 1
+            },
+            {
+              "type": "interval",
+              "answer": "大二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 60,
+              "intervalSemitones": 2
+            },
+            {
+              "type": "interval",
+              "answer": "小二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 64,
+              "intervalSemitones": 1
+            },
+            {
+              "type": "interval",
+              "answer": "大二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 65,
+              "intervalSemitones": 2
+            },
+            {
+              "type": "interval",
+              "answer": "小二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 67,
+              "intervalSemitones": 1
+            },
+            {
+              "type": "interval",
+              "answer": "大二度",
+              "options": ["小二度", "大二度"],
+              "baseMidi": 69,
+              "intervalSemitones": 2
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-25T16:12:51.226977+00:00"
+      },
+      {
+        "id": "interval_basic_l3",
+        "skill_id": "interval_basic",
+        "name": "大三度与小三度",
+        "description": "学习识别三度音程，感受大调与小调的色彩差异",
+        "lesson_order": 3,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "三度音程：音乐的色彩",
+            "content": "## 大调与小调的核心\n\n三度音程决定了音乐是\"明亮\"还是\"忧郁\"的基本色彩。\n\n### 两种三度\n\n- 小三度：3个半音，听起来\"暗淡、忧伤\"\n- 大三度：4个半音，听起来\"明亮、欢快\"\n\n### 和弦的基础\n\n- 大三和弦 = 根音 + 大三度 + 纯五度（明亮）\n- 小三和弦 = 根音 + 小三度 + 纯五度（忧伤）\n\n### 情感联想\n\n想象一首欢快的儿歌和一首伤感的情歌，它们的区别很大程度上来自三度的不同！",
+            "keyPoints": [
+              "小三度 = 3个半音（忧伤色彩）",
+              "大三度 = 4个半音（明亮色彩）",
+              "三度决定和弦的大/小性质"
+            ],
+            "audioExamples": [
+              {
+                "midi": 60,
+                "label": "小三度：忧伤的感觉",
+                "secondMidi": 63
+              },
+              {
+                "midi": 60,
+                "label": "大三度：明亮的感觉",
+                "secondMidi": 64
+              },
+              {
+                "midi": 60,
+                "label": "对比：小三 vs 大三",
+                "secondMidi": 63
+              }
+            ],
+            "estimatedTime": 90
+          },
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 60,
+              "intervalSemitones": 4
+            },
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 64,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 65,
+              "intervalSemitones": 4
+            },
+            {
+              "type": "interval",
+              "answer": "小三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 67,
+              "intervalSemitones": 3
+            },
+            {
+              "type": "interval",
+              "answer": "大三度",
+              "options": ["小三度", "大三度"],
+              "baseMidi": 69,
+              "intervalSemitones": 4
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-25T16:12:51.226977+00:00"
+      },
+      {
+        "id": "interval_basic_l4",
+        "skill_id": "interval_basic",
+        "name": "纯四度与纯五度",
+        "description": "学习识别纯四度和纯五度，这是音乐中最和谐的音程",
+        "lesson_order": 4,
+        "lesson_type": "quiz",
+        "content": {
+          "type": "quiz",
+          "theory": {
+            "title": "完美的和谐：纯四度与纯五度",
+            "content": "## 最和谐的音程\n\n纯四度和纯五度是音乐中最\"和谐\"的音程，被称为\"完全协和音程\"。\n\n### 纯四度与纯五度\n\n- 纯四度：5个半音（如 C-F）\n- 纯五度：7个半音（如 C-G）\n\n### 互补关系\n\n有趣的是，纯四度 + 纯五度 = 纯八度。它们是互补的关系！\n\n### 经典记忆法\n\n- 纯四度：《婚礼进行曲》的开头\n- 纯五度：《星球大战》主题的开头",
+            "keyPoints": [
+              "纯四度 = 5个半音",
+              "纯五度 = 7个半音",
+              "纯四度 + 纯五度 = 纯八度"
+            ],
+            "audioExamples": [
+              {
+                "midi": 60,
+                "label": "纯四度：C-F",
+                "secondMidi": 65
+              },
+              {
+                "midi": 60,
+                "label": "纯五度：C-G",
+                "secondMidi": 67
+              },
+              {
+                "midi": 60,
+                "label": "互补演示",
+                "secondMidi": 72
+              }
+            ],
+            "estimatedTime": 90
+          },
+          "questions": [
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 60,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 60,
+              "intervalSemitones": 7
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 64,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 65,
+              "intervalSemitones": 7
+            },
+            {
+              "type": "interval",
+              "answer": "纯四度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 67,
+              "intervalSemitones": 5
+            },
+            {
+              "type": "interval",
+              "answer": "纯五度",
+              "options": ["纯四度", "纯五度"],
+              "baseMidi": 69,
+              "intervalSemitones": 7
+            }
+          ],
+          "passThreshold": 0.7
+        },
+        "xp_reward": 20,
+        "created_at": "2026-01-25T16:12:51.226977+00:00"
+      }
+    ],
+    "level_config": [
+      {
+        "level": 1,
+        "required_xp": 0,
+        "title": "音乐新手",
+        "rewards": null
+      },
+      {
+        "level": 2,
+        "required_xp": 100,
+        "title": "音乐新手",
+        "rewards": null
+      },
+      {
+        "level": 3,
+        "required_xp": 250,
+        "title": "音乐新手",
+        "rewards": null
+      },
+      {
+        "level": 4,
+        "required_xp": 450,
+        "title": "音乐新手",
+        "rewards": null
+      },
+      {
+        "level": 5,
+        "required_xp": 700,
+        "title": "初学者",
+        "rewards": null
+      },
+      {
+        "level": 6,
+        "required_xp": 1000,
+        "title": "初学者",
+        "rewards": null
+      },
+      {
+        "level": 7,
+        "required_xp": 1350,
+        "title": "初学者",
+        "rewards": null
+      },
+      {
+        "level": 8,
+        "required_xp": 1750,
+        "title": "初学者",
+        "rewards": null
+      },
+      {
+        "level": 9,
+        "required_xp": 2200,
+        "title": "初学者",
+        "rewards": null
+      },
+      {
+        "level": 10,
+        "required_xp": 2700,
+        "title": "音感学徒",
+        "rewards": null
+      },
+      {
+        "level": 11,
+        "required_xp": 3250,
+        "title": "音感学徒",
+        "rewards": null
+      },
+      {
+        "level": 12,
+        "required_xp": 3850,
+        "title": "音感学徒",
+        "rewards": null
+      },
+      {
+        "level": 13,
+        "required_xp": 4500,
+        "title": "音感学徒",
+        "rewards": null
+      },
+      {
+        "level": 14,
+        "required_xp": 5200,
+        "title": "音感学徒",
+        "rewards": null
+      },
+      {
+        "level": 15,
+        "required_xp": 6000,
+        "title": "进阶学员",
+        "rewards": null
+      },
+      {
+        "level": 16,
+        "required_xp": 6900,
+        "title": "进阶学员",
+        "rewards": null
+      },
+      {
+        "level": 17,
+        "required_xp": 7900,
+        "title": "进阶学员",
+        "rewards": null
+      },
+      {
+        "level": 18,
+        "required_xp": 9000,
+        "title": "进阶学员",
+        "rewards": null
+      },
+      {
+        "level": 19,
+        "required_xp": 10200,
+        "title": "进阶学员",
+        "rewards": null
+      },
+      {
+        "level": 20,
+        "required_xp": 11500,
+        "title": "音乐达人",
+        "rewards": null
+      },
+      {
+        "level": 25,
+        "required_xp": 20000,
+        "title": "练耳高手",
+        "rewards": null
+      },
+      {
+        "level": 30,
+        "required_xp": 35000,
+        "title": "音感大师",
+        "rewards": null
+      },
+      {
+        "level": 40,
+        "required_xp": 60000,
+        "title": "绝对音感",
+        "rewards": null
+      },
+      {
+        "level": 50,
+        "required_xp": 100000,
+        "title": "音乐之神",
+        "rewards": null
+      }
+    ],
+    "achievements": [
+      {
+        "id": "skill_1",
+        "name": "技能解锁",
+        "description": "完成第一个技能",
+        "category": "learning",
+        "icon": "⭐",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 2,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "skill_5",
+        "name": "五星学员",
+        "description": "完成5个技能",
+        "category": "learning",
+        "icon": "🌟",
+        "xp_reward": 200,
+        "condition": null,
+        "sort_order": 3,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "all_basic",
+        "name": "基础毕业",
+        "description": "完成基础篇所有技能",
+        "category": "learning",
+        "icon": "📗",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 4,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "streak_5",
+        "name": "小有成就",
+        "description": "单局连击5次",
+        "category": "practice",
+        "icon": "🔥",
+        "xp_reward": 30,
+        "condition": null,
+        "sort_order": 10,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "streak_10",
+        "name": "耳朵灵敏",
+        "description": "单局连击10次",
+        "category": "practice",
+        "icon": "👂",
+        "xp_reward": 50,
+        "condition": null,
+        "sort_order": 11,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "streak_20",
+        "name": "音感达人",
+        "description": "单局连击20次",
+        "category": "practice",
+        "icon": "🎯",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 12,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "perfect_10",
+        "name": "完美表现",
+        "description": "10题全对",
+        "category": "practice",
+        "icon": "💯",
+        "xp_reward": 80,
+        "condition": null,
+        "sort_order": 13,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_3",
+        "name": "初露锋芒",
+        "description": "连续3天练习",
+        "category": "streak",
+        "icon": "📅",
+        "xp_reward": 30,
+        "condition": null,
+        "sort_order": 20,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_7",
+        "name": "周周向上",
+        "description": "连续7天练习",
+        "category": "streak",
+        "icon": "🗓️",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 21,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_30",
+        "name": "月度达人",
+        "description": "连续30天练习",
+        "category": "streak",
+        "icon": "📆",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 22,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_100",
+        "name": "百日坚持",
+        "description": "连续100天练习",
+        "category": "streak",
+        "icon": "🏅",
+        "xp_reward": 2000,
+        "condition": null,
+        "sort_order": 23,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_top10",
+        "name": "今日之星",
+        "description": "每日挑战前10名",
+        "category": "compete",
+        "icon": "⭐",
+        "xp_reward": 50,
+        "condition": null,
+        "sort_order": 30,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "daily_champion",
+        "name": "日冠军",
+        "description": "每日挑战第1名",
+        "category": "compete",
+        "icon": "👑",
+        "xp_reward": 200,
+        "condition": null,
+        "sort_order": 31,
+        "created_at": "2026-01-23T15:22:26.599861+00:00",
+        "condition_type": null,
+        "condition_value": 1
+      },
+      {
+        "id": "first_lesson",
+        "name": "开始旅程",
+        "description": "完成第一节课",
+        "category": "learning",
+        "icon": "🎵",
+        "xp_reward": 50,
+        "condition": null,
+        "sort_order": 1,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "lessons_completed",
+        "condition_value": 1
+      },
+      {
+        "id": "lessons_5",
+        "name": "勤奋学员",
+        "description": "完成5节课程",
+        "category": "learning",
+        "icon": "📚",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 2,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "lessons_completed",
+        "condition_value": 5
+      },
+      {
+        "id": "lessons_10",
+        "name": "学习达人",
+        "description": "完成10节课程",
+        "category": "learning",
+        "icon": "🎓",
+        "xp_reward": 200,
+        "condition": null,
+        "sort_order": 3,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "lessons_completed",
+        "condition_value": 10
+      },
+      {
+        "id": "lessons_25",
+        "name": "课程收割机",
+        "description": "完成25节课程",
+        "category": "learning",
+        "icon": "🌟",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 4,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "lessons_completed",
+        "condition_value": 25
+      },
+      {
+        "id": "first_skill",
+        "name": "技能解锁",
+        "description": "完成第一个技能",
+        "category": "learning",
+        "icon": "🔓",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 5,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "skills_completed",
+        "condition_value": 1
+      },
+      {
+        "id": "skills_3",
+        "name": "多面手",
+        "description": "完成3个技能",
+        "category": "learning",
+        "icon": "💪",
+        "xp_reward": 300,
+        "condition": null,
+        "sort_order": 6,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "skills_completed",
+        "condition_value": 3
+      },
+      {
+        "id": "skills_5",
+        "name": "技能大师",
+        "description": "完成5个技能",
+        "category": "learning",
+        "icon": "👑",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 7,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "skills_completed",
+        "condition_value": 5
+      },
+      {
+        "id": "streak_3",
+        "name": "三日坚持",
+        "description": "连续练习3天",
+        "category": "streak",
+        "icon": "🔥",
+        "xp_reward": 50,
+        "condition": null,
+        "sort_order": 10,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "streak_days",
+        "condition_value": 3
+      },
+      {
+        "id": "streak_7",
+        "name": "周周向上",
+        "description": "连续练习7天",
+        "category": "streak",
+        "icon": "⭐",
+        "xp_reward": 150,
+        "condition": null,
+        "sort_order": 11,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "streak_days",
+        "condition_value": 7
+      },
+      {
+        "id": "streak_14",
+        "name": "两周达人",
+        "description": "连续练习14天",
+        "category": "streak",
+        "icon": "🏆",
+        "xp_reward": 300,
+        "condition": null,
+        "sort_order": 12,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "streak_days",
+        "condition_value": 14
+      },
+      {
+        "id": "streak_30",
+        "name": "月度传奇",
+        "description": "连续练习30天",
+        "category": "streak",
+        "icon": "💎",
+        "xp_reward": 1000,
+        "condition": null,
+        "sort_order": 13,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "streak_days",
+        "condition_value": 30
+      },
+      {
+        "id": "level_5",
+        "name": "初露锋芒",
+        "description": "达到5级",
+        "category": "special",
+        "icon": "⬆️",
+        "xp_reward": 100,
+        "condition": null,
+        "sort_order": 20,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "level",
+        "condition_value": 5
+      },
+      {
+        "id": "level_10",
+        "name": "崭露头角",
+        "description": "达到10级",
+        "category": "special",
+        "icon": "📈",
+        "xp_reward": 250,
+        "condition": null,
+        "sort_order": 21,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "level",
+        "condition_value": 10
+      },
+      {
+        "id": "level_20",
+        "name": "渐入佳境",
+        "description": "达到20级",
+        "category": "special",
+        "icon": "🚀",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 22,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "level",
+        "condition_value": 20
+      },
+      {
+        "id": "xp_500",
+        "name": "积少成多",
+        "description": "累计获得500 XP",
+        "category": "special",
+        "icon": "💰",
+        "xp_reward": 50,
+        "condition": null,
+        "sort_order": 30,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "total_xp",
+        "condition_value": 500
+      },
+      {
+        "id": "xp_2000",
+        "name": "财富累积",
+        "description": "累计获得2000 XP",
+        "category": "special",
+        "icon": "💎",
+        "xp_reward": 200,
+        "condition": null,
+        "sort_order": 31,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "total_xp",
+        "condition_value": 2000
+      },
+      {
+        "id": "xp_5000",
+        "name": "XP 大亨",
+        "description": "累计获得5000 XP",
+        "category": "special",
+        "icon": "👑",
+        "xp_reward": 500,
+        "condition": null,
+        "sort_order": 32,
+        "created_at": "2026-04-03T17:13:24.667408+00:00",
+        "condition_type": "total_xp",
+        "condition_value": 5000
+      }
+    ]
+  }
+}

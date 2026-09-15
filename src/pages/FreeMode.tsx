@@ -38,6 +38,7 @@ export const FreeMode = () => {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingDurationRef = useRef(0); // 用于在回调中获取最新时长
+  const recordingsRef = useRef<Recording[]>([]);
   
   // 目标音辅助线状态
   const [showTargetLine, setShowTargetLine] = useState(false);
@@ -196,6 +197,10 @@ export const FreeMode = () => {
   
   // 清理资源
   useEffect(() => {
+    recordingsRef.current = recordings;
+  }, [recordings]);
+
+  useEffect(() => {
     return () => {
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
@@ -203,7 +208,7 @@ export const FreeMode = () => {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      recordings.forEach(r => URL.revokeObjectURL(r.url));
+      recordingsRef.current.forEach(r => URL.revokeObjectURL(r.url));
     };
   }, []);
 

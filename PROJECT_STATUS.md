@@ -1,7 +1,7 @@
 # 🎯 Melody Challenger 项目状态总览
 
 > **最后更新**: 2026-09-15<br>
-> **当前版本**: v3.3-backend-hardening<br>
+> **当前版本**: v3.3.1-pre-pilot<br>
 > **线上地址**: https://www.melodychallenger.com
 
 ---
