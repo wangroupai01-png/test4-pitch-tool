@@ -26,7 +26,7 @@ git push origin master --force
 
 ## 版本列表
 
-### v3.3.1-pre-pilot (2026-09-15)
+### v3.3.2-pre-pilot (2026-09-15)
 **状态**: ✅ 小规模试用前收尾
 
 - PWA 新版本改为显式提示更新，不再让已打开页面长期停留旧 bundle
