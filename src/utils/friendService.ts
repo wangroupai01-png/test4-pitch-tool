@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { respondToPk, settlePkScore } from '../services/settlementService';
 
 // 好友关系类型
 export interface Friendship {
@@ -433,12 +434,7 @@ export const createChallenge = async (
 // 接受挑战
 export const acceptChallenge = async (challengeId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('friend_challenges')
-      .update({ status: 'accepted' })
-      .eq('id', challengeId);
-    
-    return !error;
+    return await respondToPk(challengeId, true);
   } catch (err) {
     console.error('[Friends] Accept challenge error:', err);
     return false;
@@ -448,12 +444,7 @@ export const acceptChallenge = async (challengeId: string): Promise<boolean> => 
 // 拒绝挑战
 export const declineChallenge = async (challengeId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('friend_challenges')
-      .update({ status: 'declined' })
-      .eq('id', challengeId);
-    
-    return !error;
+    return await respondToPk(challengeId, false);
   } catch (err) {
     console.error('[Friends] Decline challenge error:', err);
     return false;
@@ -463,66 +454,12 @@ export const declineChallenge = async (challengeId: string): Promise<boolean> =>
 // 提交 PK 成绩
 export const submitChallengeScore = async (
   challengeId: string,
-  userId: string,
+  _userId: string,
   score: number
 ): Promise<{ success: boolean; completed?: boolean; winnerId?: string }> => {
   try {
-    // 获取挑战信息
-    const { data: challenge, error: fetchError } = await supabase
-      .from('friend_challenges')
-      .select('*')
-      .eq('id', challengeId)
-      .single();
-    
-    if (fetchError || !challenge) {
-      return { success: false };
-    }
-    
-    // 更新分数
-    const isChallenger = challenge.challenger_id === userId;
-    const updateData: any = {
-      status: 'in_progress'
-    };
-    
-    if (isChallenger) {
-      updateData.challenger_score = score;
-    } else {
-      updateData.opponent_score = score;
-    }
-    
-    // 检查是否双方都已完成
-    const otherScore = isChallenger ? challenge.opponent_score : challenge.challenger_score;
-    if (otherScore !== null) {
-      // 双方都完成，确定胜负
-      const challengerFinalScore = isChallenger ? score : challenge.challenger_score;
-      const opponentFinalScore = isChallenger ? challenge.opponent_score : score;
-      
-      let winnerId = null;
-      if (challengerFinalScore > opponentFinalScore) {
-        winnerId = challenge.challenger_id;
-      } else if (opponentFinalScore > challengerFinalScore) {
-        winnerId = challenge.opponent_id;
-      }
-      // 平局 winnerId 为 null
-      
-      updateData.status = 'completed';
-      updateData.winner_id = winnerId;
-      updateData.completed_at = new Date().toISOString();
-      
-      const { error } = await supabase
-        .from('friend_challenges')
-        .update(updateData)
-        .eq('id', challengeId);
-      
-      return { success: !error, completed: true, winnerId };
-    }
-    
-    const { error } = await supabase
-      .from('friend_challenges')
-      .update(updateData)
-      .eq('id', challengeId);
-    
-    return { success: !error, completed: false };
+    const result = await settlePkScore(challengeId, score);
+    return { success: true, completed: result.completed, winnerId: result.winnerId || undefined };
   } catch (err) {
     console.error('[Friends] Submit score error:', err);
     return { success: false };

@@ -12,6 +12,7 @@ import { PitchVisualizer } from '../components/game/PitchVisualizer';
 import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
 import { showLevelUpToast } from '../components/game/LevelUpToast';
+import { settleLesson } from '../services/settlementService';
 import { updateReviewSchedule } from '../utils/reviewService';
 import { clearLearnCache } from './Learn';
 import { FeedbackCard } from '../components/game/FeedbackCard';
@@ -591,11 +592,6 @@ export const LessonPage = () => {
       userId: user?.id 
     });
 
-    // 即使未登录，也尝试获取下一课信息
-    if (lesson && passed) {
-      await unlockNextLesson();
-    }
-
     if (!lesson || !user) {
       console.log('[LessonPage] Skipping save - no user or lesson');
       
@@ -624,54 +620,16 @@ export const LessonPage = () => {
     else if (passed) stars = 1;
 
     try {
-      // 保存进度
-      const { data: existing, error: selectError } = await supabase
-        .from('user_lesson_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('lesson_id', lesson.id)
-        .maybeSingle();
+      const settlement = await settleLesson(lesson.id, score, stars);
+      clearLearnCache();
+      setNextLessonId(settlement.nextLessonId || null);
 
-      if (selectError) {
-        console.error('[LessonPage] Error fetching existing progress:', selectError);
+      if (settlement.levelUp && settlement.currentLevel) {
+        setTimeout(() => showLevelUpToast(settlement.currentLevel!), 500);
       }
 
-      const progressData = {
-        user_id: user.id,
-        lesson_id: lesson.id,
-        status: passed ? 'completed' : 'unlocked',
-        best_score: existing ? Math.max(score, existing.best_score) : score,
-        stars: existing ? Math.max(stars, existing.stars) : stars,
-        attempts: (existing?.attempts || 0) + 1,
-        last_attempt_at: new Date().toISOString(),
-        completed_at: passed ? new Date().toISOString() : null,
-      };
-
-      console.log('[LessonPage] Saving progress:', progressData);
-
-      const { error: upsertError } = await supabase
-        .from('user_lesson_progress')
-        .upsert(progressData, { onConflict: 'user_id,lesson_id' });
-
-      if (upsertError) {
-        console.error('[LessonPage] Error saving progress:', upsertError);
-      } else {
-        console.log('[LessonPage] Progress saved successfully');
-        // 清除学习页面缓存，确保返回时显示最新数据
-        clearLearnCache();
-      }
-
-      // 如果通过，添加 XP
-      if (passed) {
-        // 只在首次完成时给 XP
-        if (!existing || existing.status !== 'completed') {
-          await addXP(lesson.xp_reward);
-        }
-        
-        // 更新打卡记录
+      if (settlement.passed) {
         await updateStreak(user.id);
-        
-        // 检查成就解锁
         await checkAndUnlockAchievements(user.id);
       }
 
@@ -679,256 +637,6 @@ export const LessonPage = () => {
       await updateReviewSchedule(user.id, lesson.id, score);
     } catch (err) {
       console.error('[LessonPage] Error saving progress:', err);
-    }
-  };
-
-  const addXP = async (amount: number) => {
-    if (!user) return;
-
-    try {
-      // 获取当前 XP
-      const { data: xpData } = await supabase
-        .from('user_xp')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const today = new Date().toISOString().split('T')[0];
-      const isNewDay = xpData?.last_xp_date !== today;
-
-      const newTotalXp = (xpData?.total_xp || 0) + amount;
-      const newXpToday = isNewDay ? amount : (xpData?.xp_today || 0) + amount;
-
-      // 计算等级
-      const { data: levelData } = await supabase
-        .from('level_config')
-        .select('level')
-        .lte('required_xp', newTotalXp)
-        .order('level', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const newLevel = levelData?.level || 1;
-      const oldLevel = xpData?.current_level || 1;
-
-      await supabase
-        .from('user_xp')
-        .upsert({
-          user_id: user.id,
-          total_xp: newTotalXp,
-          current_level: newLevel,
-          xp_today: newXpToday,
-          last_xp_date: today,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      // 检测升级
-      if (newLevel > oldLevel) {
-        console.log('[LessonPage] Level up!', { oldLevel, newLevel });
-        // 延迟一点显示，让其他动画先完成
-        setTimeout(() => {
-          showLevelUpToast(newLevel);
-        }, 500);
-      }
-
-      // 记录 XP 日志
-      await supabase
-        .from('xp_logs')
-        .insert({
-          user_id: user.id,
-          xp_amount: amount,
-          source: 'lesson',
-          source_id: lesson?.id,
-        });
-    } catch (err) {
-      console.error('[LessonPage] Error adding XP:', err);
-    }
-  };
-
-  const unlockNextLesson = async () => {
-    if (!lesson) {
-      console.log('[LessonPage] unlockNextLesson: no lesson');
-      return;
-    }
-
-    console.log('[LessonPage] unlockNextLesson called:', {
-      lessonId: lesson.id,
-      skillId: lesson.skill_id,
-      lessonOrder: lesson.lesson_order
-    });
-
-    try {
-      // 获取同技能的下一课 (使用当前课程的 lesson_order)
-      const { data: nextLesson, error: queryError } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('skill_id', lesson.skill_id)
-        .gt('lesson_order', lesson.lesson_order)
-        .order('lesson_order')
-        .limit(1)
-        .maybeSingle();
-
-      console.log('[LessonPage] Next lesson query result:', { nextLesson, queryError });
-
-      if (nextLesson) {
-        // 设置下一课 ID 用于导航按钮
-        console.log('[LessonPage] Setting nextLessonId:', nextLesson.id);
-        setNextLessonId(nextLesson.id);
-        
-        // 如果用户已登录，解锁下一课
-        if (user) {
-          // 检查是否已有进度
-          const { data: existing } = await supabase
-            .from('user_lesson_progress')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('lesson_id', nextLesson.id)
-            .maybeSingle();
-
-          if (!existing) {
-            const { error } = await supabase
-              .from('user_lesson_progress')
-              .insert({
-                user_id: user.id,
-                lesson_id: nextLesson.id,
-                status: 'unlocked',
-              });
-            if (error) {
-              console.error('[LessonPage] Error inserting next lesson progress:', error);
-            } else {
-              console.log('[LessonPage] Next lesson unlocked:', nextLesson.id);
-            }
-          }
-        }
-      } else {
-        // 没有下一课，检查是否完成整个技能
-        await checkSkillCompletion();
-      }
-    } catch (err) {
-      console.error('[LessonPage] Error unlocking next lesson:', err);
-    }
-  };
-
-  // 解锁所有以当前技能为前置条件的技能
-  const unlockNextSkill = async (completedSkillId: string) => {
-    if (!user) return;
-
-    try {
-      // 查找所有以当前技能为前置条件的技能
-      const { data: dependentSkills, error: skillError } = await supabase
-        .from('skills')
-        .select('id')
-        .eq('prerequisite_skill_id', completedSkillId);
-
-      console.log('[LessonPage] Dependent skills:', { completedSkillId, dependentSkills, skillError });
-
-      if (!dependentSkills || dependentSkills.length === 0) {
-        console.log('[LessonPage] No dependent skills to unlock');
-        return;
-      }
-
-      // 解锁所有依赖的技能
-      for (const skill of dependentSkills) {
-        // 解锁技能
-        const { error: skillProgressError } = await supabase
-          .from('user_skill_progress')
-          .upsert({
-            user_id: user.id,
-            skill_id: skill.id,
-            status: 'unlocked',
-          }, { onConflict: 'user_id,skill_id' });
-
-        if (skillProgressError) {
-          console.error('[LessonPage] Error unlocking skill:', skill.id, skillProgressError);
-        } else {
-          console.log('[LessonPage] Skill unlocked:', skill.id);
-        }
-
-        // 解锁该技能的第一课
-        const { data: firstLesson } = await supabase
-          .from('lessons')
-          .select('id')
-          .eq('skill_id', skill.id)
-          .order('lesson_order')
-          .limit(1)
-          .maybeSingle();
-
-        if (firstLesson) {
-          const { data: existing } = await supabase
-            .from('user_lesson_progress')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('lesson_id', firstLesson.id)
-            .maybeSingle();
-
-          if (!existing) {
-            await supabase
-              .from('user_lesson_progress')
-              .insert({
-                user_id: user.id,
-                lesson_id: firstLesson.id,
-                status: 'unlocked',
-              });
-            console.log('[LessonPage] First lesson unlocked:', firstLesson.id);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[LessonPage] Error unlocking dependent skills:', err);
-    }
-  };
-
-  const checkSkillCompletion = async () => {
-    if (!lesson || !user) return;
-
-    try {
-      // 获取技能的所有课程
-      const { data: allLessons } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('skill_id', lesson.skill_id);
-
-      if (!allLessons) return;
-
-      // 获取用户完成的课程
-      const { data: completedLessons } = await supabase
-        .from('user_lesson_progress')
-        .select('lesson_id')
-        .eq('user_id', user.id)
-        .eq('status', 'completed');
-
-      const completedIds = new Set(completedLessons?.map(l => l.lesson_id));
-      const allCompleted = allLessons.every(l => completedIds.has(l.id));
-
-      if (allCompleted) {
-        console.log('[LessonPage] All lessons completed for skill:', lesson.skill_id);
-        
-        // 标记技能完成
-        await supabase
-          .from('user_skill_progress')
-          .upsert({
-            user_id: user.id,
-            skill_id: lesson.skill_id,
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,skill_id' });
-
-        // 获取技能 XP 奖励
-        const { data: skillData } = await supabase
-          .from('skills')
-          .select('xp_reward, skill_order')
-          .eq('id', lesson.skill_id)
-          .single();
-
-        if (skillData) {
-          await addXP(skillData.xp_reward);
-          
-          // 解锁所有以此技能为前置的技能
-          await unlockNextSkill(lesson.skill_id);
-        }
-      }
-    } catch (err) {
-      console.error('[LessonPage] Error checking skill completion:', err);
     }
   };
 

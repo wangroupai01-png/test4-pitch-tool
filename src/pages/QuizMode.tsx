@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useUserStore } from '../store/useUserStore';
 import { supabase } from '../lib/supabase';
+import { settleGameScore } from '../services/settlementService';
 import { ShareButton } from '../components/ui/ShareButton';
 
 const MotionDiv = motion.div as any;
@@ -121,64 +122,8 @@ export const QuizMode = () => {
     }
 
     try {
-      console.log('[QuizMode] Saving score for user:', user.id, 'score:', finalScore);
-      
-      // First check if record exists
-      const { data: existing, error: fetchError } = await supabase
-        .from('leaderboard')
-        .select('id, best_score, total_games')
-        .eq('user_id', user.id)
-        .eq('game_mode', 'quiz')
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('[QuizMode] Error fetching existing score:', fetchError);
-        return;
-      }
-
-      if (existing) {
-        // Record exists - only update if new score is higher
-        const newBestScore = Math.max(finalScore, existing.best_score);
-        console.log('[QuizMode] Existing record found. Old best:', existing.best_score, 'New score:', finalScore, 'Will save:', newBestScore);
-        
-        const { data: updateData, error: updateError } = await supabase
-          .from('leaderboard')
-          .update({
-            best_score: newBestScore,
-            total_games: existing.total_games + (countGame ? 1 : 0),
-          })
-          .eq('id', existing.id)
-          .select();
-        
-        if (updateError) {
-          console.error('[QuizMode] Error updating score:', updateError);
-          console.error('[QuizMode] Update error details:', JSON.stringify(updateError));
-        } else {
-          console.log('[QuizMode] Score updated successfully:', updateData);
-          setBestScore(newBestScore);
-        }
-      } else {
-        // No record exists - insert new
-        console.log('[QuizMode] No existing record, inserting new');
-        const { data: insertData, error: insertError } = await supabase
-          .from('leaderboard')
-          .insert({
-            user_id: user.id,
-            game_mode: 'quiz',
-            best_score: finalScore,
-            best_level: 1,
-            total_games: countGame ? 1 : 0,
-          })
-          .select();
-        
-        if (insertError) {
-          console.error('[QuizMode] Error inserting score:', insertError);
-          console.error('[QuizMode] Insert error details:', JSON.stringify(insertError));
-        } else {
-          console.log('[QuizMode] Score inserted successfully:', insertData);
-          setBestScore(finalScore);
-        }
-      }
+      const result = await settleGameScore('quiz', finalScore, 1, countGame);
+      setBestScore(result.bestScore);
     } catch (err) {
       console.error('[QuizMode] Unexpected error saving score:', err);
     }

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../lib/supabase';
 import type { AuthChangeEvent, Session, Subscription, User } from '@supabase/supabase-js';
+import { settleGameScore } from '../services/settlementService';
 
 let authSubscription: Subscription | null = null;
 let initializePromise: Promise<void> | null = null;
@@ -236,57 +237,17 @@ export const useUserStore = create<UserState>()(
         try {
           // Sync quiz high score
           if (guestData.quizHighScore > 0) {
-            const { error } = await supabase.from('leaderboard').upsert({
-              user_id: user.id,
-              game_mode: 'quiz',
-              best_score: guestData.quizHighScore,
-              best_level: 1,
-              total_games: guestData.totalGames,
-            }, {
-              onConflict: 'user_id,game_mode',
-            });
-            if (error) throw error;
+            await settleGameScore('quiz', guestData.quizHighScore, 1, false);
           }
           
           // Sync sing high score
           if (guestData.singHighScore > 0) {
-            const { error } = await supabase.from('leaderboard').upsert({
-              user_id: user.id,
-              game_mode: 'sing',
-              best_score: guestData.singHighScore,
-              best_level: guestData.singBestLevel,
-              total_games: guestData.totalGames,
-            }, {
-              onConflict: 'user_id,game_mode',
-            });
-            if (error) throw error;
+            await settleGameScore('sing', guestData.singHighScore, Math.max(1, guestData.singBestLevel), false);
           }
           
-          // 同步游客完成的课程数量到 XP（每课程 20 XP）
-          const guestLessonsCompleted = parseInt(localStorage.getItem('guest_completed_lessons') || '0', 10);
-          if (guestLessonsCompleted > 0) {
-            // 检查用户是否已有 XP 记录
-            const { data: existingXp } = await supabase
-              .from('user_xp')
-              .select('total_xp')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            // 如果没有 XP 记录，创建一个基于游客课程的初始 XP
-            if (!existingXp) {
-              const guestXp = guestLessonsCompleted * 20; // 每课程 20 XP
-              const { error } = await supabase.from('user_xp').upsert({
-                user_id: user.id,
-                total_xp: guestXp,
-                current_level: Math.floor(guestXp / 100) + 1,
-                last_xp_date: new Date().toISOString().split('T')[0],
-              }, { onConflict: 'user_id' });
-              if (error) throw error;
-            }
-            
-            // 清除游客课程计数（已同步）
-            localStorage.removeItem('guest_completed_lessons');
-          }
+          // Guest lesson counts are not trusted reward evidence. They remain a
+          // local product signal and are never converted directly into XP.
+          localStorage.removeItem('guest_completed_lessons');
           
           set({
             guestData: {

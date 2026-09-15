@@ -28,7 +28,7 @@ npm audit --omit=dev --audit-level=high
 
 - React 19 + TypeScript + Vite
 - Tailwind CSS + Framer Motion
-- Zustand + Supabase
+- Zustand + Supabase（authenticated RPC 原子结算）
 - Web Audio API 音高检测
 - Vitest 回归测试
 - Vite PWA / Workbox
@@ -42,6 +42,7 @@ src/pages/       路由页面
 src/store/       用户与游客状态
 src/utils/       音乐、复习和业务算法
 src/lib/         Supabase 配置与数据库脚本
+src/services/    受控结算与后端访问边界
 work/logs/       开发与验证记录
 ```
 

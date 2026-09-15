@@ -9,6 +9,7 @@ import { useUserStore } from '../store/useUserStore';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { getMidiNoteName, getFrequency } from '../utils/musicTheory';
 import { checkAndUnlockAchievements, updateStreak } from '../utils/achievementChecker';
+import { settleDailyChallenge } from '../services/settlementService';
 
 const MotionDiv = motion.div as any;
 const MotionButton = motion.button as any;
@@ -137,76 +138,15 @@ export const DailyChallenge = () => {
     setGameState('result');
 
     const score = Math.round((finalCorrectCount / questions.length) * 100);
-    const xpReward = 50; // 每日挑战基础奖励
-
     if (!user) return;
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // 保存每日挑战分数
-      const { data: existing } = await supabase
-        .from('daily_challenge_scores')
-        .select('score')
-        .eq('user_id', user.id)
-        .eq('challenge_date', today)
-        .maybeSingle();
-
-      if (!existing) {
-        // 首次完成今日挑战
-        await supabase
-          .from('daily_challenge_scores')
-          .insert({
-            user_id: user.id,
-            challenge_date: today,
-            score,
-            challenge_type: getDayChallengeType(),
-          });
-
-        // 添加 XP
-        const { data: xpData } = await supabase
-          .from('user_xp')
-          .select('total_xp, xp_today')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const newTotalXp = (xpData?.total_xp || 0) + xpReward;
-
-        await supabase
-          .from('user_xp')
-          .upsert({
-            user_id: user.id,
-            total_xp: newTotalXp,
-            xp_today: (xpData?.xp_today || 0) + xpReward,
-            last_xp_date: today,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' });
-
-        // 记录 XP 日志
-        await supabase
-          .from('xp_logs')
-          .insert({
-            user_id: user.id,
-            xp_amount: xpReward,
-            source: 'daily_challenge',
-            source_id: today,
-          });
-
-        // 更新打卡
+      const result = await settleDailyChallenge(score, getDayChallengeType());
+      setTodayBestScore(result.bestScore);
+      if (result.firstCompletion) {
         await updateStreak(user.id);
-        
-        // 检查成就
         await checkAndUnlockAchievements(user.id);
-      } else if (score > existing.score) {
-        // 更新最高分
-        await supabase
-          .from('daily_challenge_scores')
-          .update({ score })
-          .eq('user_id', user.id)
-          .eq('challenge_date', today);
       }
-
-      setTodayBestScore(Math.max(score, existing?.score || 0));
     } catch (err) {
       console.error('[DailyChallenge] Error saving score:', err);
     }
